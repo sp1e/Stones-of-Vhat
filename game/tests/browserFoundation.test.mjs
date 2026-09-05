@@ -24,6 +24,10 @@ test('browser toolchain uses the exact approved dependencies', () => {
     test: 'node --test tests/*.test.mjs',
     typecheck: 'tsc --noEmit',
     check: 'npm run typecheck && npm test',
+    dev: 'vite --host 127.0.0.1',
+    build: 'tsc --noEmit && vite build',
+    preview: 'vite preview --host 127.0.0.1',
+    'test:browser': 'node --test browser/*.spec.mjs',
   });
 });
 

@@ -1,16 +1,26 @@
-# Vadstena — runtime-grund
+# Vadstena — spelbar teknikgård M1A
 
-M0 innehåller testade TypeScript-moduler för preferenser, fast simuleringstakt och logisk input. Detta är inte ännu ett spelbart kapitel eller en renderad testgård.
+M1A är en lokalt spelbar PC-webbprototyp med Three.js-rendering och Rapier-fysik. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och återstartslivscykel — inte en historisk rekonstruktion.
 
-Krav: Node 24.12–24.x och npm. Kör från arbetskopians rot (mappen som innehåller `game/`):
+Krav: Node 24.12–24.x och npm. Kör från arbetskopians rot:
 
     rtk npm --prefix game ci
+    rtk npm --prefix game run dev
+
+Öppna sedan `http://127.0.0.1:5173/vadstena/`. Produktionsbygge och lokal preview:
+
+    rtk npm --prefix game run build
+    rtk npm --prefix game run preview
+
+Kontroller: WASD för rörelse, mus för blick, Shift för sprint, Space för hopp, C för att huka och Esc eller Tab för paus. Startknappen begär browserns pointer lock; spelet börjar inte simulera innan låset faktiskt är aktivt. Gore-inställningen är på som standard och sparas lokalt, men M1A innehåller ännu inga gore-effekter.
+
+Verifiering:
+
     rtk npm --prefix game run check
+    rtk npm --prefix game run test:browser
 
-Första profilen har gore PÅ. Ett giltigt sparat false bevaras av preferenskodningen. Browserlagring, pausmeny och grafisk rensning ansluts i kommande delar.
+Implementerat i M1A: förstapersonsrörelse, sprint, hopp, hukning, trappor, ramp, låg passage, fem fysiska rekvisitaobjekt, paus/fokusgrind, beständig inställning, ren återstart av fysikvärlden och återhämtning via omladdning vid WebGL-kontextförlust.
 
-Simuleringen använder 1/60 sekund och högst åtta steg per bildanrop. Paus rensar ackumulerad tid. Inputgrinden rensar hållna och väntande handlingar. Renderern och browseradaptern måste använda dessa kontrakt; de finns inte här ännu.
+Inte implementerat ännu: fysisk Grip, projektiler, NPC:er, strid, ragdoll, gore-grafik, historisk spelvärld eller Windows `.exe`. Webbarkitekturen är hållen browser- och wrapper-kompatibel inför separat framtida paketering.
 
-Nästa leverans är mekanikgården: Three.js, Rapier, förstapersonsrörelse, fysisk Grip och magiska projektiler. Full omfattning och kvalitetsgrindar finns i [leveranskartan](../docs/superpowers/plans/2026-09-05-vadstena-delivery-map.md).
-
-Ingen publicering eller ändring av sp1e.se ingår i M0.
+Ingen publicering eller ändring av sp1e.se ingår i M1A.
