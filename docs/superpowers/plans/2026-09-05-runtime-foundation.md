@@ -51,7 +51,7 @@ Node tests are JavaScript and production modules are TypeScript. This avoids add
 
 **Generate:** `game/package-lock.json`.
 
-- [ ] **1. Write this failing test first** in `game/tests/bootstrap.test.mjs`:
+- [x] **1. Write this failing test first** in `game/tests/bootstrap.test.mjs`:
 
 ~~~js
 import test from 'node:test';
@@ -72,9 +72,9 @@ test('game package is private ESM with native tests and strict checking', () => 
 });
 ~~~
 
-- [ ] **2. Run red from the repository root:** `rtk node --test game/tests/bootstrap.test.mjs`. Expected: assertion failure `game/package.json is missing`, not a parser/import failure.
+- [x] **2. Run red from the repository root:** `rtk node --test game/tests/bootstrap.test.mjs`. Expected: assertion failure `game/package.json is missing`, not a parser/import failure.
 
-- [ ] **3. Create these configuration files.** `game/package.json`:
+- [x] **3. Create these configuration files.** `game/package.json`:
 
 ~~~json
 {
@@ -122,11 +122,11 @@ test('game package is private ESM with native tests and strict checking', () => 
 /.playtest/
 ~~~
 
-- [ ] **4. Run green:** `rtk node --test game/tests/bootstrap.test.mjs`. Expected: one passing test.
-- [ ] **5. Install the pinned development dependency:** `rtk npm --prefix game install`. Then run `rtk npm --prefix game audit`. Do not add browser/physics dependencies in this task. Typecheck begins in Task 2 because the package has no source inputs yet.
-- [ ] **6. Apply the repository's dependency-analysis rule.** Search for Codacy MCP first. If present, run its Trivy analysis immediately after the install and resolve newly introduced vulnerabilities. If absent, explicitly record unavailable analysis; npm audit is an additional check, not a claim that Codacy ran. Never install Codacy manually. A reported new vulnerability stops progression until resolved or escalated.
-- [ ] **7. Run** `rtk npm --prefix game test` **and** `rtk git diff --check`. Expected: one passing test and no whitespace errors.
-- [ ] **8. Review and commit** after the separate spec and quality reviews:
+- [x] **4. Run green:** `rtk node --test game/tests/bootstrap.test.mjs`. Expected: one passing test.
+- [x] **5. Install the pinned development dependency:** `rtk npm --prefix game install`. Then run `rtk npm --prefix game audit`. Do not add browser/physics dependencies in this task. Typecheck begins in Task 2 because the package has no source inputs yet.
+- [x] **6. Apply the repository's dependency-analysis rule.** Search for Codacy MCP first. If present, run its Trivy analysis immediately after the install and resolve newly introduced vulnerabilities. If absent, explicitly record unavailable analysis; npm audit is an additional check, not a claim that Codacy ran. Never install Codacy manually. A reported new vulnerability stops progression until resolved or escalated.
+- [x] **7. Run** `rtk npm --prefix game test` **and** `rtk git diff --check`. Expected: one passing test and no whitespace errors.
+- [x] **8. Review and commit** after the separate spec and quality reviews:
 
 ~~~text
 rtk git add game/package.json game/package-lock.json game/tsconfig.json game/.gitignore game/tests/bootstrap.test.mjs
@@ -139,7 +139,7 @@ rtk git commit -m "chore: bootstrap testable Vadstena runtime package"
 
 No DOM or localStorage is imported. M1 owns reading/writing storage, warnings on access failures and applying preferences before the first frame. This task owns only validation and serialization.
 
-- [ ] **1. Write the failing tests** in `game/tests/preferences.test.mjs`:
+- [x] **1. Write the failing tests** in `game/tests/preferences.test.mjs`:
 
 ~~~js
 import test from 'node:test';
@@ -166,6 +166,7 @@ test('an explicit saved false stays false', () => {
 test('false survives an encode/decode round trip', () => {
   assert.equal(typeof api.encodePreferences, 'function', 'preference encoder is missing');
   const value = { version: 1, goreEnabled: false };
+  assert.equal(api.encodePreferences(value), '{"version":1,"goreEnabled":false}');
   assert.deepEqual(api.decodePreferences(api.encodePreferences(value)).value, value);
 });
 
@@ -188,8 +189,8 @@ test('decoding does not reuse mutable default preference objects', () => {
 
 The conditional import does not stub the implementation: it turns missing-source setup into a clear assertion failure, and imports the real module whenever it exists. Syntax/runtime errors in an existing module must still fail normally.
 
-- [ ] **2. Run red:** `rtk node --test game/tests/preferences.test.mjs`. Expected: five failing assertions for the missing codec/encoder. Do not treat a syntax error as the red result.
-- [ ] **3. Implement** `game/src/settings/preferences.ts`:
+- [x] **2. Run red:** `rtk node --test game/tests/preferences.test.mjs`. Expected: five failing assertions for the missing codec/encoder. Do not treat a syntax error as the red result.
+- [x] **3. Implement** `game/src/settings/preferences.ts`:
 
 ~~~ts
 export type Preferences = { version: 1; goreEnabled: boolean };
@@ -228,8 +229,8 @@ export function encodePreferences(value: Preferences): string {
 }
 ~~~
 
-- [ ] **4. Run green:** `rtk node --test game/tests/preferences.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and six total tests pass; source typecheck succeeds.
-- [ ] **5. Review and commit:** stage exactly `game/src/settings/preferences.ts` and `game/tests/preferences.test.mjs`; commit with `rtk git commit -m "feat: preserve versioned gore preferences"`.
+- [x] **4. Run green:** `rtk node --test game/tests/preferences.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and six total tests pass; source typecheck succeeds.
+- [x] **5. Review and commit:** stage exactly `game/src/settings/preferences.ts` and `game/tests/preferences.test.mjs`; commit with `rtk git commit -m "feat: preserve versioned gore preferences"`.
 
 ## Task 3: Fixed ticks with bounded catch-up and no paused-time debt
 
@@ -237,7 +238,7 @@ export function encodePreferences(value: Preferences): string {
 
 The caller supplies elapsed seconds and a gameplay-active flag. Simulation advances at 1/60 second, at most eight steps per render call. Excess time is explicitly dropped, never carried into a later unpause. Dropped time is observable for diagnostics. Physics is not attached yet.
 
-- [ ] **1. Write the failing tests** in `game/tests/fixedStep.test.mjs`:
+- [x] **1. Write the failing tests** in `game/tests/fixedStep.test.mjs`:
 
 ~~~js
 import test from 'node:test';
@@ -282,10 +283,19 @@ test('pause discards residual time and does not advance the simulation', () => {
 test('a long active frame is capped and never leaves whole-step debt', () => {
   assert.equal(typeof api.createFixedStepper, 'function', 'fixed stepper is missing');
   const advance = api.createFixedStepper();
-  const result = advance(2, true, () => {});
+  advance(1 / 120, true, () => assert.fail('too early'));
+  let callbacks = 0;
+  const result = advance(2.005, true, () => { callbacks += 1; });
+  assert.equal(callbacks, 8);
   assert.equal(result.steps, 8);
-  assert.ok(Math.abs(result.droppedSeconds - (2 - 8 / 60)) < 1e-8);
-  assert.equal(advance(0, true, () => assert.fail('overload debt leaked')).steps, 0);
+  assert.ok(Math.abs(result.alpha - 0.5) < 1e-8);
+  assert.ok(Math.abs(result.droppedSeconds - (2.005 - 8 / 60)) < 1e-8);
+  const idle = advance(0, true, () => assert.fail('overload debt leaked'));
+  assert.equal(idle.steps, 0);
+  assert.ok(Math.abs(idle.alpha - 0.5) < 1e-8);
+  const resumed = advance(1 / 120, true, () => { callbacks += 1; });
+  assert.equal(callbacks, 9);
+  assert.equal(resumed.tick, 9);
 });
 
 test('invalid elapsed time clears the accumulator without advancing', () => {
@@ -299,8 +309,8 @@ test('invalid elapsed time clears the accumulator without advancing', () => {
 });
 ~~~
 
-- [ ] **2. Run red:** `rtk node --test game/tests/fixedStep.test.mjs`. Expected: five assertions report the missing stepper.
-- [ ] **3. Implement** `game/src/runtime/fixedStep.ts`:
+- [x] **2. Run red:** `rtk node --test game/tests/fixedStep.test.mjs`. Expected: five assertions report the missing stepper.
+- [x] **3. Implement** `game/src/runtime/fixedStep.ts`:
 
 ~~~ts
 export const FIXED_DT = 1 / 60;
@@ -347,8 +357,8 @@ export function createFixedStepper() {
 }
 ~~~
 
-- [ ] **4. Run green:** `rtk node --test game/tests/fixedStep.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and eleven total tests pass; no type errors.
-- [ ] **5. Review and commit:** stage exactly `game/src/runtime/fixedStep.ts` and `game/tests/fixedStep.test.mjs`; commit with `rtk git commit -m "feat: add bounded fixed-step simulation clock"`.
+- [x] **4. Run green:** `rtk node --test game/tests/fixedStep.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and eleven total tests pass; no type errors.
+- [x] **5. Review and commit:** stage exactly `game/src/runtime/fixedStep.ts` and `game/tests/fixedStep.test.mjs`; commit with `rtk git commit -m "feat: add bounded fixed-step simulation clock"`.
 
 ## Task 4: Gate logical actions and document the foundation
 
@@ -356,7 +366,7 @@ export function createFixedStepper() {
 
 The browser adapter in M1 maps physical keys/buttons to these logical actions. It must deactivate this buffer on pause, visibility loss, blur and pointer-lock loss; reopening gameplay never replays stale actions. This task proves the buffer, not browser-event wiring.
 
-- [ ] **1. Write the failing tests** in `game/tests/actionBuffer.test.mjs`:
+- [x] **1. Write the failing tests** in `game/tests/actionBuffer.test.mjs`:
 
 ~~~js
 import test from 'node:test';
@@ -381,6 +391,7 @@ test('a held action has only one pressed edge despite key repeats', () => {
   input.press('forward');
   input.press('forward');
   assert.deepEqual(input.sample(), { held: ['forward'], pressed: ['forward'] });
+  input.press('forward');
   assert.deepEqual(input.sample(), { held: ['forward'], pressed: [] });
 });
 
@@ -416,8 +427,8 @@ test('mutating a returned snapshot cannot corrupt the input buffer', () => {
 });
 ~~~
 
-- [ ] **2. Run red:** `rtk node --test game/tests/actionBuffer.test.mjs`. Expected: five assertions report the missing action buffer.
-- [ ] **3. Implement** `game/src/input/actionBuffer.ts`:
+- [x] **2. Run red:** `rtk node --test game/tests/actionBuffer.test.mjs`. Expected: five assertions report the missing action buffer.
+- [x] **3. Implement** `game/src/input/actionBuffer.ts`:
 
 ~~~ts
 export type Action =
@@ -459,8 +470,8 @@ export function createActionBuffer() {
 }
 ~~~
 
-- [ ] **4. Run green:** `rtk node --test game/tests/actionBuffer.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and sixteen total tests pass.
-- [ ] **5. Create** `game/README.md` **with this content after the preceding tests pass:**
+- [x] **4. Run green:** `rtk node --test game/tests/actionBuffer.test.mjs`, then `rtk npm --prefix game run check`. Expected: five focused tests and sixteen total tests pass.
+- [x] **5. Create** `game/README.md` **with this content after the preceding tests pass:**
 
 ~~~md
 # Vadstena — runtime-grund
@@ -468,7 +479,7 @@ export function createActionBuffer() {
 M0 innehåller testade TypeScript-moduler för preferenser, fast simuleringstakt
 och logisk input. Detta är inte ännu ett spelbart kapitel eller en renderad testgård.
 
-Krav: Node 24.12–24.x och npm. Kör från Game1-roten:
+Krav: Node 24.12–24.x och npm. Kör från arbetskopians rot (mappen som innehåller `game/`):
 
     rtk npm --prefix game ci
     rtk npm --prefix game run check
@@ -482,22 +493,22 @@ Renderern och browseradaptern måste använda dessa kontrakt; de finns inte här
 
 Nästa leverans är mekanikgården: Three.js, Rapier, förstapersonsrörelse,
 fysisk Grip och magiska projektiler. Full omfattning och kvalitetsgrindar finns
-i ../docs/superpowers/plans/2026-09-05-vadstena-delivery-map.md.
+i [leveranskartan](../docs/superpowers/plans/2026-09-05-vadstena-delivery-map.md).
 
 Ingen publicering eller ändring av sp1e.se ingår i M0.
 ~~~
 
-- [ ] **6. Review and commit:** stage exactly `game/src/input/actionBuffer.ts`, `game/tests/actionBuffer.test.mjs` and `game/README.md`; commit with `rtk git commit -m "feat: gate gameplay actions and document runtime foundation"`.
+- [x] **6. Review and commit:** stage exactly `game/src/input/actionBuffer.ts`, `game/tests/actionBuffer.test.mjs` and `game/README.md`; commit with `rtk git commit -m "feat: gate gameplay actions and document runtime foundation"`.
 
-## Completion checks
+## Completion checks and next-stage gates
 
-- [ ] Run `rtk npm --prefix game run check`: sixteen tests pass and TypeScript reports zero errors.
-- [ ] Run `rtk npm --prefix game audit`: record the actual result; do not infer security from a lockfile.
-- [ ] Run `rtk git diff --check` and inspect `rtk git status --short`; preserve unrelated files.
-- [ ] Final independent review covers all four tasks, the approved chapter boundaries and the absence of unintended browser/site work.
-- [ ] Record actual commands, red/green results, commit SHAs and review findings in `docs/superpowers/plans/2026-09-05-runtime-foundation-results.md`. The results document is an execution record, not a prewritten success claim.
-- [ ] Apply finishing-a-development-branch without silently pushing or discarding work. If a worktree was used, report its absolute path and local branch explicitly.
-- [ ] Mark only M0 complete in the delivery map. Write M1's separate executable plan against these verified interfaces before implementing its browser and physics layer.
+- [x] Run `rtk npm --prefix game run check`: sixteen tests pass and TypeScript reports zero errors.
+- [x] Run `rtk npm --prefix game audit`: zero known vulnerabilities; Codacy/Trivy unavailable and disclosed separately.
+- [x] Run `rtk git diff --check` and inspect `rtk git status --short`; unrelated files preserved.
+- [x] Final independent review covers all four tasks, the approved chapter boundaries and the absence of unintended browser/site work. PASS, no findings.
+- [x] Record actual commands, red/green results, commit SHAs and review findings in `docs/superpowers/plans/2026-09-05-runtime-foundation-results.md`.
+- [x] Mark only M0 complete in the delivery map. Branch remains open in the same worktree because the user requested continued development; no merge/push/discard requested.
+- [ ] Next-stage gate, not M0 delivery: write M1's executable subplans against the verified interfaces before implementing browser and physics. Apply finishing-a-development-branch at eventual branch handoff, not between ongoing stages.
 
 ## Author self-review, 2026-09-05
 
@@ -507,4 +518,4 @@ Placeholder review: all four code tasks contain exact source/test content and co
 
 Interface review: tests use the exact exports `decodePreferences`, `encodePreferences`, `createFixedStepper` and `createActionBuffer`; `advance` calls `onStep(dt, tick)`; snapshots contain `held` and `pressed`. Imports use explicit `.ts` extensions supported by the verified Node runtime.
 
-Execution started after explicit worktree consent. The checklists and companion results document distinguish planned code from verified implementation.
+M0 execution is complete and independently reviewed. Test examples include the coverage refinements found during review. The results document records evidence and distinguishes this foundation from the unimplemented game chapter.

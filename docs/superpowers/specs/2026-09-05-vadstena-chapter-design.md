@@ -1,6 +1,6 @@
 # Vadstena: Den åttonde klangen — första kapitlets designspec
 
-Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** genom svaret ”Ser grymt ut!” på frågan om den uppdaterade specen och förberedda snittzoner. Designgrinden är passerad; nästa steg är implementation enligt separata, testbara delplaner. Ingen spelkod, färdig grafik eller uppmätt prestanda finns ännu.
+Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** genom svaret ”Ser grymt ut!” på frågan om den uppdaterade specen och förberedda snittzoner. M0:s runtime-grund är nu lokalt implementerad med preferenskodning, fast klocka och inputgrind; 16 modul-/konfigurationstester och typkontroll passerar. Spelbar vy, fysik, magi, färdig grafik och uppmätt spelprestanda återstår.
 
 ## 1. Beslut och omfattning
 
@@ -222,6 +222,6 @@ Utanför kapitlet: multiplayer, konton, hela stadens interiörer, aktivt återh�
 
 ## 14. Granskningsstatus
 
-Primärdokumentation för Rapier/Three.js och kompletterande kommunal miljökälla har kontrollerats i denna omgång. Specen gör skillnad mellan motorns byggstenar och våra egna system. Separat specgranskning fann ingen blockerare för användargranskning; preciseringar av checkpointens tillstånd, oberoende kontra duplicerade träffar och klingans vinkelkrav har därefter införts. Inga funktionstester, grafikprov eller prestandamätningar är utförda eftersom implementation ännu inte påbörjats. Codacy MCP-verktyg är inte tillgängliga; ingen sådan analys påstås utförd.
+Primärdokumentation för Rapier/Three.js och kompletterande kommunal miljökälla kontrollerades under specarbetet. Specen gör skillnad mellan motorns byggstenar och våra egna system. Separat specgranskning fann ingen blockerare för användargranskning; preciseringar av checkpointens tillstånd, oberoende kontra duplicerade träffar och klingans vinkelkrav infördes före godkännandet. M0:s modul-/konfigurationstester är nu körda, men kapitlets browser-, fysik-, grafik- och prestandaprov är inte utförda. Codacy MCP-verktyg är inte tillgängliga; ingen sådan analys påstås utförd.
 
 Simon godkände den skrivna specen 2026-09-05, inklusive fasta anatomiska snittzoner och gorefri presentation. Designgrinden är därmed passerad. [Leveranskartan](../plans/2026-09-05-vadstena-delivery-map.md) och [runtime-grundens implementationsplan](../plans/2026-09-05-runtime-foundation.md) styr nästa arbete; ingen ytterligare designgranskning krävs för oförändrad omfattning.

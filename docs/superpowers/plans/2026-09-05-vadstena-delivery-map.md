@@ -55,7 +55,7 @@ All ny spelkod placeras under `game/`, med egen `game/.gitignore`. Dokumenten li
 
 ## Verifierad verktygsbas, 2026-09-05
 
-Lokal miljö: Node 24.16.0, npm 11.13.0. Läsbara registerkontroller fann TypeScript 7.0.2, Vite 8.2.2, Three 0.185.1, @types/three 0.185.4 och @dimforge/rapier3d-compat 0.20.0. Dessa är exakta kandidater att låsa vid respektive installation; ingen installation eller kompilering har utförts. Om versionsläget ändrats när M1 planeras ska kompatibiliteten kontrolleras igen.
+Lokal miljö: Node 24.16.0, npm 11.13.0. TypeScript 7.0.2 är nu installerad och låst i M0; ren installation, typkontroll och 16 tester passerar. Tidigare läsande registerkontroller fann även Vite 8.2.2, Three 0.185.1, @types/three 0.185.4 och @dimforge/rapier3d-compat 0.20.0. Dessa browser-/fysikpaket är kandidater för M1 och är inte installerade här. Kontrollera kompatibiliteten igen vid M1:s planering och bygge.
 
 M0 använder Nodes inbyggda testkörning för rena TypeScript-moduler och separat TypeScript-typkontroll. Ingen renderer eller WASM behövs för dessa tester. Node tar bort typannoteringar men gör inte typkontroll; därför är båda kommandona obligatoriska. [Node TypeScript](https://nodejs.org/api/typescript.html), [Node test runner](https://nodejs.org/api/test.html).
 
@@ -69,7 +69,7 @@ Rapier 0.20.0:s `castShape` har `targetDistance` före `maxToi`; äldre kodexemp
 - [x] Leveranskarta och avgränsad M0-plan skrivna.
 - [x] Befintlig arbetskopia undersökt: vanlig checkout på `codex/vadstena-chapter-design`, inte länkad worktree.
 - [x] Simon godkände separat worktree. Arbetskopia: `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation`, gren `codex/vadstena-runtime-foundation`. Global placering bevarar originalets användarägda konfigurationsfiler orörda.
-- [ ] M0 implementerad och granskad.
+- [x] M0 implementerad och granskad: 16/16 tester, godkänd typkontroll och oberoende slutgranskning utan fynd. Resultat i [M0-protokollet](2026-09-05-runtime-foundation-results.md).
 - [ ] M1:s exekverbara fysik-/browserplan skriven mot M0:s verifierade gränssnitt och genomförd.
 - [ ] M2–M5 planerade och genomförda i beroendeordning.
 
