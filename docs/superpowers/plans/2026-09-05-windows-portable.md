@@ -133,6 +133,13 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
       });
       assert.deepEqual(settings, { sandbox: true, nodeIntegration: false,
         contextIsolation: true, webSecurity: true });
+      assert.equal(await page.evaluate(() => window.open('about:blank')), null);
+      assert.equal(await app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().length), 1);
+      assert.equal(await page.evaluate(() => {
+        try { new Function('return 1')(); return 'allowed'; }
+        catch { return 'blocked'; }
+      }), 'blocked');
       assert.equal(await page.evaluate(async () => {
         try { await fetch('https://example.com/'); return 'allowed'; }
         catch { return 'blocked'; }
