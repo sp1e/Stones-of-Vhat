@@ -12,5 +12,6 @@ test('game package is private ESM with native tests and strict checking', () => 
   assert.equal(pkg.scripts.typecheck, 'tsc --noEmit');
   const config = JSON.parse(readFileSync(new URL('../tsconfig.json', import.meta.url), 'utf8'));
   assert.equal(config.compilerOptions.strict, true);
+  assert.equal(config.compilerOptions.lib.includes('ESNext.Disposable'), true, 'Rapier disposal declarations require ESNext.Disposable');
   assert.equal(config.compilerOptions.erasableSyntaxOnly, true);
 });

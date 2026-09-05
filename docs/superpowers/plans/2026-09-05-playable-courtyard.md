@@ -153,7 +153,7 @@ export default defineConfig({ base: '/vadstena/', server: { host: '127.0.0.1' } 
 ~~~html
 <!doctype html>
 <html lang="sv">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#141d1c"><title>Vadstena — Teknikgården</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#141d1c"><link rel="icon" href="data:,"><title>Vadstena — Teknikgården</title></head>
 <body>
 <div id="viewport" aria-label="Tredimensionell teknikgård"></div>
 <header id="hud"><span class="eyebrow">VADSTENA · DEN ÅTTONDE KLANGEN</span><span id="hint">TEKNIKGÅRD / M1A</span></header>
@@ -269,6 +269,7 @@ export function createYardView(host: HTMLElement) {
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 45 });
+  sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias = -0.0005;
   scene.add(sun);
   const camera = new THREE.PerspectiveCamera(75, 1, 0.06, 80);
@@ -435,7 +436,9 @@ if (matchMedia('(pointer: coarse)').matches && innerWidth < 900) {
   }
   start.addEventListener('click', () => {
     if (busy || failed || disposed || !view) return;
-    view.canvas.requestPointerLock()?.catch(() => pause('Muslåset kunde inte startas. Klicka på Gå in igen.'));
+    try {
+      view.canvas.requestPointerLock()?.catch(() => pause('Muslåset kunde inte startas. Klicka på Gå in igen.'));
+    } catch { pause('Muslåset stöds inte här. Prova en annan datorwebbläsare.'); }
   }, options);
   restart.addEventListener('click', () => { void replaceWorld(); }, options);
   reload.addEventListener('click', () => location.reload(), options);

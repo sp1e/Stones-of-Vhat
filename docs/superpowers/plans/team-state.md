@@ -14,9 +14,9 @@ Branch: codex/vadstena-runtime-foundation
 | Work | Owner | Status |
 | --- | --- | --- |
 | M0 foundation | Existing implementers and final reviewer | Complete, 16 tests, final review PASS; closeout 86ab5a9 |
-| Browser dependencies and preference storage | browser_foundation | Implemented a979018; spec and quality PASS; small getItem failure regression coverage in progress |
+| Browser dependencies and preference storage | browser_foundation | Complete a979018 + 3ef23d5; spec and quality PASS; getItem failure regression added, 22 tests pass |
 | M1A plans and shared integration decisions | Coordinator | Three executable plans written and self-reviewed; plan commit 41a0a46 |
-| Real courtyard/capsule physics | Next fresh physics builder | Waiting for prior task coverage follow-up |
+| Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Implementing the bounded physics/content contract with real Rapier tests |
 | Playable Three view/input/menu | Next fresh browser builder | Waiting for reviewed physics interface |
 | Integrated browser QA and visual checks | Coordinator and fresh reviewer | Pending actual playable build |
 
@@ -30,8 +30,10 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 
 ## Checks, limitations and next action
 
-- Browser foundation: strict types and 21 tests PASS, npm audit zero vulnerabilities; both independent reviewers verified the implementation.
+- Browser foundation: strict types and 22 tests PASS after coverage follow-up, npm audit zero vulnerabilities; both independent reviewers verified the initial 21-test implementation and coordinator inspected the small follow-up.
 - Codacy MCP unavailable. npm audit is supplementary; no Codacy/Trivy scan is claimed and no manual scanner install attempted. Reset the MCP connection to restore that check.
 - Plan whitespace check found two extra blank EOF lines after commit 41a0a46; coordinator removed them and will verify the follow-up diff.
 - No rendered browser, magic, NPC, ragdoll, gore effects or hardware performance claim yet.
-- Next: finish the small storage regression test, then dispatch the physical courtyard builder with exclusive ownership of content/physics/tests/results.
+- Browser test runtime installed: Chromium 153.0.8010.12, WebGL2 available, observed renderer ANGLE/SwiftShader (software). This is only a harness smoke check, not gameplay/performance validation.
+- Rapier import revealed missing Symbol.dispose typings. Coordinator added a failing bootstrap assertion, then ESNext.Disposable to tsconfig lib. Bootstrap and strict types pass; target remains ES2022 and declaration checking is not skipped.
+- Next: review the physical courtyard implementation and real collision evidence, then integrate the playable browser view.

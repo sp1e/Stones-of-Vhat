@@ -302,12 +302,28 @@ export async function createYard(options: { layout?: readonly BodyDefinition[]; 
 export type Yard = Awaited<ReturnType<typeof createYard>>;
 ~~~
 
-- [ ] Run `rtk npm --prefix game run check`. Expected: 27 tests pass and strict typecheck succeeds. If a real physics assertion fails, inspect trajectories/API semantics and correct the implementation; do not weaken the assertion to hide incorrect physics.
+- [ ] Run `rtk npm --prefix game run check`. Expected: 28 tests pass (22 existing plus six new) and strict typecheck succeeds. If a real physics assertion fails, inspect trajectories/API semantics and correct the implementation; do not weaken the assertion to hide incorrect physics.
 - [ ] Add any demonstrated regression test before fixing it. Validate ramp travel with the same real-world fixture pattern if slope behavior exposes a defect.
 - [ ] Record RED/GREEN, real Rapier version, fixed timestep, one initialization warm-up step, lifecycle results and limitations in the results document.
 - [ ] Run `rtk git diff --check`; stage only owned files and commit `feat: add real courtyard physics and capsule movement`.
 - [ ] Independent spec review, then quality review; resolve findings before renderer integration.
 
 ## Controller self-review
+
+### Verified integration adjustment
+
+Importing Rapier exposed 36 TS2550 errors in its Symbol.dispose declarations. The coordinator owns game/tsconfig.json and game/tests/bootstrap.test.mjs for this narrow adjustment. Added and observed this assertion fail before changing configuration:
+
+~~~js
+assert.equal(config.compilerOptions.lib.includes('ESNext.Disposable'), true, 'Rapier disposal declarations require ESNext.Disposable');
+~~~
+
+Changed only the compiler library list to:
+
+~~~json
+"lib": ["ES2022", "DOM", "ESNext.Disposable"]
+~~~
+
+The bootstrap assertion and strict typecheck now pass. ES2022 output target and full declaration checking remain intact; no skipLibCheck or runtime dependency change was used. Physics trajectory validation remains the builder's responsibility.
 
 This implements M1A physics only, not the entire M1. Flat floor colliders avoid decorative cobble jitter. Authored ramps, low passage, stairs, walls and four prop types give the subsequent playable view useful movement/interaction checks. Standing uses volume clearance, not just a head ray. World snapshots have no shared mutable physics state; destroy is a real lifecycle API, not a test-only hook. Nine-link severing, magic, NPCs, final historical reconstruction and saves remain in their approved later milestones. No renderer or browser is claimed here.
