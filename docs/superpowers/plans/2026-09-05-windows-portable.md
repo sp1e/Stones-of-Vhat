@@ -288,6 +288,19 @@ Use installed Electron 44 types/source to correct any proven API mismatch before
 
 - [ ] **Step 4: Add exact dependencies, build scripts and package configuration.**
 
+Before installing, extend the existing exact devDependency assertion in browserFoundation.test.mjs to the following and observe its mismatch against the current package:
+
+```js
+assert.deepEqual(pkg.devDependencies, {
+  '@types/three': '0.185.4',
+  electron: '44.2.0',
+  'electron-builder': '26.15.3',
+  playwright: '1.63.0',
+  typescript: '7.0.2',
+  vite: '8.2.2',
+});
+```
+
 From game run `rtk proxy npm install --save-dev --save-exact electron@44.2.0 electron-builder@26.15.3`, then `rtk proxy npm audit`. Codacy MCP is unavailable; disclose the gap, do not install a substitute scanner. Inspect any audit findings and dependency changes before claiming safe completion.
 
 game/scripts/build-desktop.mjs:

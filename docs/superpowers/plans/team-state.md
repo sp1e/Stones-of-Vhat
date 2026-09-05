@@ -17,8 +17,8 @@ Branch: codex/vadstena-runtime-foundation
 | Browser dependencies and preference storage | browser_foundation | Complete a979018 + 3ef23d5; spec and quality PASS; getItem failure regression added, 22 tests pass |
 | M1A plans and shared integration decisions | Coordinator | Three executable plans written and self-reviewed; plan commit 41a0a46 |
 | Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Complete 6389f15, 31 tests pass; physics_quality independently confirms its important finding resolved and approves integration |
-| Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Implementing the browser contract after reviewed physics; owns browser files/tests/README/results only |
-| Integrated browser QA and visual checks | Coordinator and fresh reviewer | Pending actual playable build |
+| Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Implemented 6d92691; strict types, 31 native and 4 browser tests pass; review gates pending |
+| Integrated browser QA and visual checks | Coordinator and browser_spec (gpt-5.6-terra/high) | Coordinator independently passed 31 native tests and inspected both screenshots; fresh read-only spec review active, quality review follows |
 | Windows portable .exe packaging | Coordinator planning; windows_packaging_research (gpt-5.6-terra/high) complete | Electron 44.2.0 / builder 26.15.3 researched; secure custom origin and portable target selected; no executable built yet |
 
 ## Team workflow decisions
@@ -34,7 +34,7 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 - Browser foundation: strict types and 22 tests PASS after coverage follow-up, npm audit zero vulnerabilities; both independent reviewers verified the initial 21-test implementation and coordinator inspected the small follow-up.
 - Codacy MCP unavailable. npm audit is supplementary; no Codacy/Trivy scan is claimed and no manual scanner install attempted. Reset the MCP connection to restore that check.
 - Plan whitespace check found two extra blank EOF lines after commit 41a0a46; coordinator removed them and will verify the follow-up diff.
-- No rendered browser, magic, NPC, ragdoll, gore effects or hardware performance claim yet.
+- Browser view is now rendered and tested; magic, NPC, ragdoll, gore effects and hardware performance remain unimplemented/unmeasured.
 - Browser test runtime installed: Chromium 153.0.8010.12, WebGL2 available, observed renderer ANGLE/SwiftShader (software). This is only a harness smoke check, not gameplay/performance validation.
 - Rapier import revealed missing Symbol.dispose typings. Coordinator added a failing bootstrap assertion, then ESNext.Disposable to tsconfig lib. Bootstrap and strict types pass; target remains ES2022 and declaration checking is not skipped.
 - Historical finding: the initial 0.002 normal nudge only fixed yaw-zero movement; independent yaw-grid diagnostics then found stalls at 22.5/45 degrees. The replacement support classification in 6389f15 is now independently approved for browser integration.
@@ -43,5 +43,6 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 - Correction uses a short centre-foot support ray for adhesion classification, not movement collision. Full capsule sweeps and stand clearance remain. The 0.002 nudge override was removed. Expanded 272-world/32,640-tick regression passes, plus actual descending stairs/ramp, ledge fall and steep sliding; maximum observed vertical tick change is 7.391mm, not zero jitter.
 - PC scope update sent to the browser builder: remove mobile UI/branch/test; preserve PC resize/accessibility, add Windows packaging only in a separate owned task. Research agent is read-only, so there is still only one implementation owner active.
 - User paused development, then explicitly resumed. Browser owner resumed from its preserved uncommitted files; no edits were discarded. Coordinator prepares the desktop plan while browser implementation finishes.
+- User reiterated codex-team-workflow on resumption. Continue native assignment-based delegation, one production writer, ordered independent reviews and this coordinator-owned status file. Browser spec review uses Terra/high for bounded contract comparison; reassess on uncovered behavioral requirements, not elapsed time alone. Windows plan is written at b5f7415, with a follow-up exact dependency assertion; packaging awaits browser review closure.
 - Packaging research corrections: builder 26.15.3 uses win.signExecutable=false (not win.sign=false), retaining executable resources. Validate app URLs by protocol/host/port/credentials, never WHATWG origin equality. Native pointer lock requires a visible focused Windows test; hidden startup cannot establish that evidence.
 - Next: integrate and test the PC browser view, inspect actual screenshots and review; then build and verify the requested portable Windows .exe using the same game code.
