@@ -2,7 +2,7 @@
 
 **Spelkoncept och historiskt beslutsunderlag · 2026-09-05 · för Simon / sp1e**
 
-Arbetstitel. Simon har godkänt **senmedeltid med tidsbrott** och den systemdrivna första etappen, med tillägg om magisk avståndsstrid, verklig NPC-ragdoll, riktad avskiljning, valbar gore och genomarbetade mellanmiljöer. **Gore ska vara PÅ från första starten.** Sparad avstängning respekteras. Den detaljerade [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md) samlar aktuella krav och metodval för granskning. Inget spel är implementerat ännu.
+Arbetstitel. Simon har godkänt **senmedeltid med tidsbrott** och den systemdrivna första etappen, med tillägg om magisk avståndsstrid, verklig NPC-ragdoll, riktad avskiljning, valbar gore och genomarbetade mellanmiljöer. **Gore ska vara PÅ från första starten.** Sparad avstängning respekteras. Den detaljerade [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md), inklusive förberedda snittzoner, godkändes 2026-09-05. [Leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md) visar byggordningen. Inget spel är implementerat ännu.
 
 ## Spelet vi vill göra
 
@@ -151,4 +151,4 @@ Cloudflare Pages anger högst 25 MiB per statisk fil. Staden bör därför lever
 
 ## Beslutet härnäst
 
-Spelriktningen och första etappen är godkända med användarens tillägg. Nästa steg är granskning av den skrivna [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md), därefter en testdriven implementationsplan. Alla fem landmärken och fem skolor ligger kvar i helhetsvisionen. Ingen implementation eller publicering påstås genomförd.
+Spelriktningen, första etappen och den skrivna [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md) är godkända med användarens tillägg. Nästa steg är testdriven implementation enligt [leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md), med runtime-grunden som första delplan. Alla fem landmärken och fem skolor ligger kvar i helhetsvisionen. Ingen implementation eller publicering påstås genomförd.

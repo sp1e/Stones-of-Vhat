@@ -1,6 +1,6 @@
 # Game1 — research- och designarbete
 
-Datum: 2026-09-05. Mottagare: Simon / sp1e. Status: koncept godkänt med tillägg; detaljerad spec skriven och granskad, ingen implementation ännu.
+Datum: 2026-09-05. Mottagare: Simon / sp1e. Status: koncept och detaljerad spec godkända av användaren; implementation planeras, ingen spelruntime ännu.
 
 ## Avgränsning
 
@@ -45,6 +45,9 @@ Förstudien är levererad i docs/VADSTENA-GAME-CONCEPT.md. Simon har därefter g
 - [x] Kontrollera primärdokumentation för projektilsvep, joints, skinnade modeller och livscykel; kontrollera lokalt miljöunderlag.
 - [x] Skriv detaljerad spec, uppdatera konceptet och granska konsekvenskedjan träff → skada → ragdoll → avskiljning → presentation. Separat granskning genomförd; checkpoint-/träff-/vinkelkrav preciserade.
 - [x] Verifiera dokument: UTF-8 utan ersättningstecken, inga arbetsplatshållare, konsekvent gore PÅ/sparat AV och godkänd git diff --cached --check. Endast fyra uppgiftsägda dokument är valda för lokal versionshantering på codex/vadstena-chapter-design.
-- [ ] **Inväntar användaren:** granska den skrivna specen enligt brainstorming, därefter implementationsplan.
+- [x] Simon godkände den skrivna specen 2026-09-05 med ”Ser grymt ut!”, uttryckligen efter frågan om förberedda snittzoner. Ingen ytterligare designbekräftelse behövs för denna omfattning.
+- [x] Skapa en leveranskarta och en separat exekverbar plan för runtime-grunden i docs/superpowers/plans/.
+- [ ] Välj arbetskopia enligt using-git-worktrees före kodimplementation. Game1 är en vanlig checkout, inte redan en länkad worktree; ingen tidigare worktree-preferens är angiven.
+- [ ] Implementera runtime-grunden med TDD och separata spec-/kvalitetsgranskningar, följt av mekanikgården enligt leveranskartan.
 
 Codacy MCP-analysverktyg saknas i denna session. Ingen Codacy-analys eller installation påstås utförd; dokument kontrolleras lokalt. Befintliga .github/.gitignore lämnas orörda och hemsidan ändras inte.

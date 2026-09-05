@@ -1,6 +1,6 @@
 # Vadstena: Den åttonde klangen — första kapitlets designspec
 
-Datum: 2026-09-05. Projekt: Game1. Status: **skriven spec för användargranskning före implementationsplan**. Spelriktningen är godkänd; tekniska detaljval och avgränsningar nedan är föreslagna för att genomföra den. Ingen spelkod, färdig grafik eller uppmätt prestanda finns ännu.
+Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** genom svaret ”Ser grymt ut!” på frågan om den uppdaterade specen och förberedda snittzoner. Designgrinden är passerad; nästa steg är implementation enligt separata, testbara delplaner. Ingen spelkod, färdig grafik eller uppmätt prestanda finns ännu.
 
 ## 1. Beslut och omfattning
 
@@ -78,7 +78,7 @@ Kroppar ska kollidera trovärdigt med trappor, murar och föremål. Närliggande
 
 ## 6. Avskiljning och gore — vald metod och ärlig ambitionsnivå
 
-**Föreslagen metod: förberedda anatomiska snittzoner, separerbara skinnade segment och slutna snittytor.** Målbilden är övertygande realtidsgrafik med riktad träff, sammanhängande övergång och fysisk rörelse. Det är inte medicinsk vävnadssimulering.
+**Godkänd metod: förberedda anatomiska snittzoner, separerbara skinnade segment och slutna snittytor.** Målbilden är övertygande realtidsgrafik med riktad träff, sammanhängande övergång och fysisk rörelse. Det är inte medicinsk vävnadssimulering.
 
 Det bredare alternativet är fri runtime-skärning i valfritt plan genom valfria delar av en skinnad modell. Det kräver egen meshdelning, nya skinvikter, snittytor och kollisioner. Det är en separat forsknings-/utvecklingsgren, inte utlovat i detta kapitel. Förberedda zoner prioriterar kvalitet och verifierbar precision inom webbplatsens budget. Slumpmässig amputation efter en allmän kroppsträff är inte en accepterad ersättning.
 
@@ -224,4 +224,4 @@ Utanför kapitlet: multiplayer, konton, hela stadens interiörer, aktivt återh�
 
 Primärdokumentation för Rapier/Three.js och kompletterande kommunal miljökälla har kontrollerats i denna omgång. Specen gör skillnad mellan motorns byggstenar och våra egna system. Separat specgranskning fann ingen blockerare för användargranskning; preciseringar av checkpointens tillstånd, oberoende kontra duplicerade träffar och klingans vinkelkrav har därefter införts. Inga funktionstester, grafikprov eller prestandamätningar är utförda eftersom implementation ännu inte påbörjats. Codacy MCP-verktyg är inte tillgängliga; ingen sådan analys påstås utförd.
 
-Nästa steg är användarens granskning av denna skrivna spec, framför allt metoden med fasta anatomiska snittzoner och gorefri presentation. Därefter skapas den detaljerade implementationsplanen enligt det valda brainstorming-flödet.
+Simon godkände den skrivna specen 2026-09-05, inklusive fasta anatomiska snittzoner och gorefri presentation. Designgrinden är därmed passerad. [Leveranskartan](../plans/2026-09-05-vadstena-delivery-map.md) och [runtime-grundens implementationsplan](../plans/2026-09-05-runtime-foundation.md) styr nästa arbete; ingen ytterligare designgranskning krävs för oförändrad omfattning.
