@@ -16,8 +16,8 @@ Branch: codex/vadstena-runtime-foundation
 | M0 foundation | Existing implementers and final reviewer | Complete, 16 tests, final review PASS; closeout 86ab5a9 |
 | Browser dependencies and preference storage | browser_foundation | Complete a979018 + 3ef23d5; spec and quality PASS; getItem failure regression added, 22 tests pass |
 | M1A plans and shared integration decisions | Coordinator | Three executable plans written and self-reviewed; plan commit 41a0a46 |
-| Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | 3287cfb passes 29 tests and spec review; quality reviewer found rotated-input stalls. Same builder now owns failing yaw-grid regressions and correction before integration |
-| Playable Three view/input/menu | Next fresh browser builder | Waiting for reviewed physics interface |
+| Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Complete 6389f15, 31 tests pass; physics_quality independently confirms its important finding resolved and approves integration |
+| Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Implementing the browser contract after reviewed physics; owns browser files/tests/README/results only |
 | Integrated browser QA and visual checks | Coordinator and fresh reviewer | Pending actual playable build |
 
 ## Team workflow decisions
@@ -39,4 +39,5 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 - Physics builder's unchanged yaw-zero movement assertion found floor-cast anisotropy; 0.002 normal nudge resolved that specific case. Seven initial physics tests pass, but independent yaw-grid diagnostics found further stalls at 22.5/45 degrees. The current code is not yet approved for browser integration.
 - Coordinator also walked the actual five-step staircase through the physics API: maximum capsule-center height 1.9663 m, traversed to z=-6.0501, 21 bodies/colliders. This is a read-only trajectory diagnostic, not a rendered playtest.
 - Physics spec review allocation uses gpt-5.6-terra/high for bounded contract/test comparison. The subsequent deeper quality review will use gpt-6-astra/high for ownership and controller edge cases.
-- Next: reproduce and fix rotated-input stalls without weakening distance or collision tests; recheck the material quality finding, then integrate the playable browser view.
+- Correction uses a short centre-foot support ray for adhesion classification, not movement collision. Full capsule sweeps and stand clearance remain. The 0.002 nudge override was removed. Expanded 272-world/32,640-tick regression passes, plus actual descending stairs/ramp, ledge fall and steep sliding; maximum observed vertical tick change is 7.391mm, not zero jitter.
+- Next: integrate and test the playable browser view, inspect actual screenshots, then perform fresh spec and integrated quality review.

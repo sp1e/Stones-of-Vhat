@@ -1,5 +1,7 @@
 # Physical courtyard implementation results
 
+Review status: spec PASS; independent quality follow-up PASS at 6389f1544905cc5a3fb37ff70e52401730874a92. The reviewer reproduced the former 22.5/45-degree failures and confirmed they now pass the unchanged tolerance, with no near-zero walking ticks. Strict typecheck and all 31 tests passed independently. No remaining critical or important finding blocks browser integration.
+
 Date: 2026-09-05. Scope: the real Rapier world, authored prototype content, capsule movement, and native integration tests. This module is not a playable browser build yet; rendering and browser controls remain the following integration stage. Geometry is a gameplay prototype, not historical reconstruction.
 
 ## Delivered contract

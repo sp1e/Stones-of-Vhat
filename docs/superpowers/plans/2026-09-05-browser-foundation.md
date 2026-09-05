@@ -20,7 +20,7 @@ Continue in C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtim
 
 ## Task 1: Toolchain and resilient preference storage
 
-- [ ] Write game/tests/browserFoundation.test.mjs:
+- [x] Write game/tests/browserFoundation.test.mjs:
 
 ~~~js
 import test from 'node:test';
@@ -73,9 +73,9 @@ test('write failure preserves the current session choice', () => {
 });
 ~~~
 
-- [ ] Run `rtk node --test game/tests/browserFoundation.test.mjs`. Expected: five assertion failures (missing dependency contract / missing function), not a module loader failure.
+- [x] Run `rtk node --test game/tests/browserFoundation.test.mjs`. Expected: five assertion failures (missing dependency contract / missing function), not a module loader failure.
 
-- [ ] Replace game/package.json with:
+- [x] Replace game/package.json with:
 
 ~~~json
 {
@@ -102,9 +102,9 @@ test('write failure preserves the current session choice', () => {
 }
 ~~~
 
-- [ ] Run `rtk npm --prefix game install`, immediately `rtk npm --prefix game audit`. Codacy/Trivy cannot be run without its missing MCP tool; record that gap. Stop on new vulnerabilities and resolve them before proceeding.
+- [x] Run `rtk npm --prefix game install`, immediately `rtk npm --prefix game audit`. Codacy/Trivy cannot be run without its missing MCP tool; record that gap. Stop on new vulnerabilities and resolve them before proceeding.
 
-- [ ] Create game/src/settings/preferenceStore.ts:
+- [x] Create game/src/settings/preferenceStore.ts:
 
 ~~~ts
 import { decodePreferences, encodePreferences } from './preferences.ts';
@@ -143,10 +143,10 @@ export function createPreferenceStore(getStorage: () => StoragePort) {
 }
 ~~~
 
-- [ ] Run `rtk npm --prefix game run check`. Expected: strict typecheck and 21 tests pass.
-- [ ] Write the results document with actual commands, totals, audit outcome and security limitation (do not fabricate elapsed time or scanner results).
-- [ ] Run `rtk git diff --check`; stage only the five owned files and commit `feat: prepare browser physics toolchain and preference storage`.
-- [ ] Obtain independent spec review, then code-quality review. Fix findings through the same implementer and repeat the affected review.
+- [x] Run `rtk npm --prefix game run check`. Expected: strict typecheck and 21 tests pass.
+- [x] Write the results document with actual commands, totals, audit outcome and security limitation (do not fabricate elapsed time or scanner results).
+- [x] Run `rtk git diff --check`; stage only the five owned files and commit `feat: prepare browser physics toolchain and preference storage`.
+- [x] Obtain independent spec review, then code-quality review. Fix findings through the same implementer and repeat the affected review.
 
 ## Controller self-review
 

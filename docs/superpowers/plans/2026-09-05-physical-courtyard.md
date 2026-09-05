@@ -20,7 +20,7 @@ All commands begin rtk, edits use apply_patch. Do not touch other checkout, depl
 
 ## Task 1: Real world and player
 
-- [ ] Add game/tests/yard.test.mjs:
+- [x] Add game/tests/yard.test.mjs:
 
 ~~~js
 import test from 'node:test';
@@ -126,9 +126,9 @@ test('snapshots cannot mutate simulation and ten lifecycles release ownership', 
 });
 ~~~
 
-- [ ] Run `rtk node --test game/tests/yard.test.mjs`. Expected: six assertion failures identifying absent createYard.
+- [x] Run `rtk node --test game/tests/yard.test.mjs`. Expected: six assertion failures identifying absent createYard.
 
-- [ ] Create game/src/content/yardLayout.ts:
+- [x] Create game/src/content/yardLayout.ts:
 
 ~~~ts
 export type Vec3 = { x: number; y: number; z: number };
@@ -167,7 +167,7 @@ export const YARD_LAYOUT: readonly BodyDefinition[] = [
 ];
 ~~~
 
-- [ ] Create game/src/physics/yard.ts. Read the installed Rapier 0.20 declarations if an API differs; do not cast away a mismatch. The controller is removed before freeing its owning world.
+- [x] Create game/src/physics/yard.ts. Read the installed Rapier 0.20 declarations if an API differs; do not cast away a mismatch. The controller is removed before freeing its owning world.
 
 ~~~ts
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -259,8 +259,15 @@ export async function createYard(options: { layout?: readonly BodyDefinition[]; 
           world.propagateModifiedBodyPositionsToColliders();
         }
       }
+      const support = grounded ? world.castRayAndGetNormal(
+        new RAPIER.Ray(player.translation(), { x: 0, y: -1, z: 0 }),
+        half + radius + 0.01 + 0.05, true,
+        RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, playerCollider, player,
+      ) : null;
+      const supported = support !== null && support.normal.y / Math.hypot(support.normal.x, support.normal.y, support.normal.z) > Math.cos(Math.PI * 50 / 180);
       if (grounded && intent.jump && !crouched) verticalSpeed = 5.5;
-      else if (grounded && verticalSpeed <= 0) verticalSpeed = -1;
+      else if (supported) verticalSpeed = 0;
+      else if (grounded) verticalSpeed = -1;
       else verticalSpeed = Math.max(-30, verticalSpeed - 18 * FIXED_DT);
       const length = Math.max(1, Math.hypot(intent.right, intent.forward));
       const speed = crouched ? 2 : intent.sprint ? 6.8 : 4.2;
@@ -302,11 +309,11 @@ export async function createYard(options: { layout?: readonly BodyDefinition[]; 
 export type Yard = Awaited<ReturnType<typeof createYard>>;
 ~~~
 
-- [ ] Run `rtk npm --prefix game run check`. Expected: 28 tests pass (22 existing plus six new) and strict typecheck succeeds. If a real physics assertion fails, inspect trajectories/API semantics and correct the implementation; do not weaken the assertion to hide incorrect physics.
-- [ ] Add any demonstrated regression test before fixing it. Validate ramp travel with the same real-world fixture pattern if slope behavior exposes a defect.
-- [ ] Record RED/GREEN, real Rapier version, fixed timestep, one initialization warm-up step, lifecycle results and limitations in the results document.
-- [ ] Run `rtk git diff --check`; stage only owned files and commit `feat: add real courtyard physics and capsule movement`.
-- [ ] Independent spec review, then quality review; resolve findings before renderer integration.
+- [x] Run `rtk npm --prefix game run check`. Expected: 28 tests pass (22 existing plus six new) and strict typecheck succeeds. If a real physics assertion fails, inspect trajectories/API semantics and correct the implementation; do not weaken the assertion to hide incorrect physics.
+- [x] Add any demonstrated regression test before fixing it. Validate ramp travel with the same real-world fixture pattern if slope behavior exposes a defect.
+- [x] Record RED/GREEN, real Rapier version, fixed timestep, one initialization warm-up step, lifecycle results and limitations in the results document.
+- [x] Run `rtk git diff --check`; stage only owned files and commit `feat: add real courtyard physics and capsule movement`.
+- [x] Independent spec review, then quality review; resolve findings before renderer integration.
 
 ## Controller self-review
 
@@ -349,5 +356,7 @@ for (const yaw of [0, Math.PI / 8, -Math.PI / 8, Math.PI / 4, -Math.PI / 4, Math
 ~~~
 
 Use the same real 40m floor fixture; preserve all existing movement-distance and collision assertions. Investigate contact stability and vertical jitter, not just a single passing angle. No teleporting through contacts, no filtered-out floor collision, and no extra world steps per public step. Record the demonstrated cause, justified correction, RED/GREEN and review follow-up in the results document.
+
+The verified correction at 6389f15 uses a bounded, self/sensor-excluding centre-foot ray only to classify nearby non-sliding support. The earlier support-capsule probe was rejected after broader testing found unreliable near-tangent normals there too. Actual motion and standing clearance still use the full capsule. On verified support, built-in snapping replaces artificial constant downward input; steep/unsupported motion retains gravity. The nudge override was removed. Expanded regression: 272 worlds, 32,640 walking ticks, minimum advance 0.06933m for nominal 0.07m; maximum observed vertical tick change 0.007391m. All 31 tests pass, including descending the actual stairs/ramp and falling off a ledge. Quality follow-up is recorded separately in team-state/results.
 
 This implements M1A physics only, not the entire M1. Flat floor colliders avoid decorative cobble jitter. Authored ramps, low passage, stairs, walls and four prop types give the subsequent playable view useful movement/interaction checks. Standing uses volume clearance, not just a head ray. World snapshots have no shared mutable physics state; destroy is a real lifecycle API, not a test-only hook. Nine-link severing, magic, NPCs, final historical reconstruction and saves remain in their approved later milestones. No renderer or browser is claimed here.

@@ -12,6 +12,7 @@
 
 Work only in C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation.
 - game/package.json: add browser/build scripts, retain existing scripts/dependencies.
+- game/tests/browserFoundation.test.mjs: extend its exact scripts contract with the four required browser/build commands before changing package.json; browser builder owns this narrow adjustment.
 - game/vite.config.ts: nested-path build, local-only server.
 - game/index.html: loading/paused UI, accessibility and compatibility messaging.
 - game/src/vite-env.d.ts: Vite client types.
