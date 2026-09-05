@@ -28,6 +28,7 @@ Modify:
 - game/package.json, package-lock.json — exact dev dependencies and scripts only.
 - game/tests/browserFoundation.test.mjs — extend its script contract, retain all existing assertions.
 - game/.gitignore — ignore /desktop/renderer/ and /release/.
+- game/vite.config.ts — exclude generated renderer, release and test-profile paths from development watching; keep existing base and diagnostics boundary.
 - game/README.md — actual commands/artifact/profile location and limitations.
 
 Generated and ignored:
@@ -37,6 +38,12 @@ Generated and ignored:
 - game/.playtest/desktop-* — test profile and captures.
 
 No mobile work, engine rewrite, IPC bridge, Node access in renderer, updater, website changes, publication, signing certificate discovery, or installer. Gore preference still defaults on; this milestone does not add gore visuals or NPCs.
+
+## Security checkpoint during implementation
+
+Defender detected and quarantined the first generated unpacked Vadstena.exe as Trojan:Win32/Cinjo.O!cl (events 1116/1117). Builds and launches stopped; no assistant restored quarantine or modified Defender. Simon then explicitly reported allowing the files himself. The generated exe remained absent. Read-only checks matched the cached 158,199,548-byte Electron Windows x64 ZIP to the independently fetched official release SHA-256: 4021363e3090d67a144ebedb90765cf193b0e61f300c519c83f0174502a481da. The base electron.exe is also NotSigned; whole-file SHA-256 07b043bf9b0a0ac14a82fac0b612b7b7ed13cde727d706d74e41a45278ab51f1, executable .text SHA-256 5f886a6a215947a50097991314ec54f60bde33387a429eff0bc5c417e5d024d3.
+
+These are provenance checks, not proof that the detection was false. Resume with one controlled unpacked build from this verified base, compare its .text before launching, and stop again if Defender quarantines or raises a new detection. Keep the detection, user's allowance and test limitations in the final results. No security exclusions, settings changes or quarantine restoration by the assistant.
 
 ## Task 1: Secure desktop build and executable acceptance
 
@@ -103,7 +110,9 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
   { timeout: 180_000 }, async () => {
     assert.ok(existsSync(executablePath), 'packaged Vadstena.exe must exist');
     await mkdir(join(root, '.playtest'), { recursive: true });
-    const profile = await mkdtemp(join(root, '.playtest', 'desktop-profile-'));
+    const profileParent = await mkdtemp(join(root, '.playtest', 'desktop-profile-'));
+    const profile = join(profileParent, 'new-profile');
+    assert.equal(existsSync(profile), false);
     async function launch() {
       return electron.launch({
         executablePath,
@@ -120,6 +129,7 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
         return start instanceof HTMLButtonElement && !start.disabled;
       });
       assert.equal(page.url(), 'app://game/');
+      assert.equal(existsSync(profile), true);
       assert.equal(await page.locator('canvas').count(), 1);
       assert.equal(await page.locator('#gore').isChecked(), true);
       assert.deepEqual(await page.evaluate(() => ({
@@ -215,7 +225,8 @@ game/desktop/main.mjs:
 
 ```js
 import { app, BrowserWindow, protocol, session, dialog } from 'electron';
-import { readFile, mkdir } from 'node:fs/promises';
+import { mkdirSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assetPath, isGameUrl, permitsPointerLock } from './policy.mjs';
@@ -231,7 +242,9 @@ const mime = {
 app.setName('Vadstena');
 app.setAppUserModelId('se.sp1e.vadstena');
 const profileOverride = app.commandLine.getSwitchValue('user-data-dir');
-app.setPath('userData', profileOverride || join(app.getPath('appData'), 'Vadstena'));
+const profilePath = profileOverride || join(app.getPath('appData'), 'Vadstena');
+mkdirSync(profilePath, { recursive: true });
+app.setPath('userData', profilePath);
 protocol.registerSchemesAsPrivileged([{
   scheme: 'app',
   privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true },
@@ -239,7 +252,6 @@ protocol.registerSchemesAsPrivileged([{
 let window;
 
 app.whenReady().then(async () => {
-  await mkdir(app.getPath('userData'), { recursive: true });
   protocol.handle('app', async (request) => {
     const file = assetPath(rendererRoot, request.url);
     if (!file || !['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 404 });
@@ -338,6 +350,8 @@ files:
   - policy.mjs
   - package.json
   - renderer/**/*
+  - '!node_modules/**/*'
+electronDist: node_modules/electron/dist
 asar: true
 npmRebuild: false
 win:
@@ -355,14 +369,28 @@ portable:
 Add scripts without replacing existing ones:
 ```json
 {
+  "electron:runtime": "node node_modules/electron/install.js",
   "build:desktop": "tsc --noEmit && node scripts/build-desktop.mjs",
-  "pack:desktop": "npm run build:desktop && electron-builder --config electron-builder.yml --win --x64 --dir --publish never",
-  "dist:desktop": "npm run build:desktop && electron-builder --config electron-builder.yml --win portable --x64 --publish never",
+  "pack:desktop": "npm run build:desktop && npm run electron:runtime && electron-builder --config electron-builder.yml --win --x64 --dir --publish never",
+  "dist:desktop": "npm run build:desktop && npm run electron:runtime && electron-builder --config electron-builder.yml --win portable --x64 --publish never",
   "test:desktop": "node --test desktop-tests/*.spec.mjs"
 }
 ```
 
 Extend browserFoundation.test.mjs's exact script-object assertion first and observe the expected mismatch before package script edits. Add /desktop/renderer/ and /release/ to game/.gitignore. Keep root .gitignore untouched.
+
+Evidence-driven build adjustment: the installed Electron 44 package has no postinstall lifecycle script; its runtime install is lazy. Explicit electron:runtime invokes the pinned package's own checksum-validating installer. Builder's supported electronDist points to that unpacked npm-owned runtime, taking its copy path rather than the observed failing extracted-directory rename. Do not point at release/win-unpacked.tmp. The first ASAR unexpectedly collected the parent game's production node_modules; the explicit exclusion above must pass the actual archive-content regression before acceptance.
+
+Development watcher adjustment: a live preview watched generated Electron profile DevToolsActivePort and crashed with EBUSY; it also reloaded for generated renderer and Electron license HTML. Extend the existing Vite server object, retaining all other configuration:
+
+```ts
+server: {
+  host: '127.0.0.1',
+  watch: { ignored: ['**/.playtest/**', '**/release/**', '**/desktop/renderer/**'] },
+},
+```
+
+Add a failing config assertion for these exact exclusions before the edit, then exercise generated-path changes without a page reload in browser QA. This is independent of Defender; no root-cause relationship is claimed.
 
 - [ ] **Step 5: Verify actual behavior and artifacts.**
 
@@ -377,6 +405,37 @@ rtk proxy npm run dist:desktop
 ```
 
 Expected: all native/browser tests and strict types pass; both web and desktop renderer builds remain functional; packaged exe renders real Three/Rapier offline; persistent gore false survives full process relaunch; renderer has no require/process/diagnostic globals and effective sandbox stays on.
+
+Before the first post-allowance executable launch, run this read-only Node module from game (for example with `rtk proxy node --input-type=module -e`); it must match the independently verified base code section:
+
+```js
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+function textHash(path) {
+  const bytes = readFileSync(path);
+  const pe = bytes.readUInt32LE(0x3c);
+  assert.equal(bytes.readUInt32LE(pe), 0x4550);
+  const count = bytes.readUInt16LE(pe + 6);
+  const table = pe + 24 + bytes.readUInt16LE(pe + 20);
+  for (let index = 0; index < count; index += 1) {
+    const section = table + index * 40;
+    const name = bytes.toString('ascii', section, section + 8).split('\0')[0];
+    if (name !== '.text') continue;
+    const size = bytes.readUInt32LE(section + 16);
+    const offset = bytes.readUInt32LE(section + 20);
+    assert.ok(offset + size <= bytes.length);
+    return createHash('sha256').update(bytes.subarray(offset, offset + size)).digest('hex');
+  }
+  throw new Error('PE .text section missing');
+}
+const expected = '5f886a6a215947a50097991314ec54f60bde33387a429eff0bc5c417e5d024d3';
+assert.equal(textHash('node_modules/electron/dist/electron.exe'), expected);
+assert.equal(textHash('release/win-unpacked/Vadstena.exe'), expected);
+console.log('Generated executable code section matches verified Electron base.');
+```
+
+This deliberately does not label the detection false or validate every runtime behavior. Resource/signature edits are outside .text; inspect the actual ASAR and run the remaining acceptance checks separately.
 
 Perform a focused visible Windows pointer-lock check of the real executable: start through actual button, assert pointerLockElement is canvas, actual movement changes rendered view, Escape returns pause panel. Use Playwright Electron automation rather than adding production diagnostics. Browser simulation ticks are already tested independently. If OS focus/automation prevents pointer lock, retain that as an explicit unverified limitation and do not describe it as passed.
 
@@ -400,6 +459,8 @@ Run `rtk proxy git diff --check`, stage only the enumerated implementation files
 ## Coordinator self-review
 
 Coverage: PC web retained; Windows portable added; defaults/persistence verified; signed distribution not promised. Historical chapter, magic and gore engine remain later milestones. Security has explicit path/permission/network boundaries; exact dependencies verified by primary published sources. No source code depends on test diagnostics. Build and tests are local and recoverable.
+
+Startup-order correction during implementation: Electron 44's installed electron.d.ts explicitly requires an existing directory before app.setPath. The original draft created it after ready, which was too late for a first-run default profile. The plan now creates it synchronously before setPath, and the executable test uses an initially absent child profile to cover first-run creation instead of only an already-existing temporary directory. This does not establish the cause of any separate observed native launch error; runtime stderr must still be checked.
 
 Primary references:
 - [Electron protocol API](https://www.electronjs.org/docs/latest/api/protocol/)
