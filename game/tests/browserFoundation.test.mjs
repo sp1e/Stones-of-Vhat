@@ -80,3 +80,16 @@ test('quota errors retain the requested preference for the session', () => {
   assert.deepEqual(store.setGore(false), { value: { version: 1, goreEnabled: false }, status: 'unavailable' });
   assert.deepEqual(store.read(), { value: { version: 1, goreEnabled: false }, status: 'unavailable' });
 });
+
+test('a failing storage read falls back and a later write can save preferences', () => {
+  assert.equal(typeof api.createPreferenceStore, 'function');
+  const data = new Map();
+  const store = api.createPreferenceStore(() => ({
+    getItem: () => { throw new Error('storage read denied'); },
+    setItem: (key, value) => data.set(key, value),
+  }));
+  assert.deepEqual(store.read(), { value: { version: 1, goreEnabled: true }, status: 'unavailable' });
+  assert.deepEqual(store.setGore(false), { value: { version: 1, goreEnabled: false }, status: 'saved' });
+  assert.deepEqual(store.read(), { value: { version: 1, goreEnabled: false }, status: 'saved' });
+  assert.equal(data.get(api.PREFERENCE_KEY), '{"version":1,"goreEnabled":false}');
+});
