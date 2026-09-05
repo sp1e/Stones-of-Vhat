@@ -1,6 +1,6 @@
 # Vadstena: Den åttonde klangen — första kapitlets designspec
 
-Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** genom svaret ”Ser grymt ut!” på frågan om den uppdaterade specen och förberedda snittzoner. M0 och den riktiga Rapier-fysikgrunden är lokalt implementerade och granskade. En spelbar PC-teknikgård är implementerad med 31 modul-/konfigurationstester, typkontroll och fyra webbläsartester som passerar; dess oberoende slutgranskning pågår. Windows-paketering, magi, NPC:er, gore-grafik, historiska slutmiljöer och uppmätt hårdvaruprestanda återstår.
+Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** genom svaret ”Ser grymt ut!” på frågan om den uppdaterade specen och förberedda snittzoner. M0, den riktiga Rapier-fysikgrunden och en spelbar PC-teknikgård är lokalt implementerade och oberoende granskade. 31 modul-/konfigurationstester, typkontroll och fem webbläsartester passerar. Windows-paketeringen pågår. Magi, NPC:er, gore-grafik, historiska slutmiljöer och uppmätt hårdvaruprestanda återstår.
 
 ## 1. Beslut och omfattning
 

@@ -2,7 +2,7 @@
 
 **Spelkoncept och historiskt beslutsunderlag · 2026-09-05 · för Simon / sp1e**
 
-Arbetstitel. Simon har godkänt **senmedeltid med tidsbrott** och den systemdrivna första etappen, med tillägg om magisk avståndsstrid, verklig NPC-ragdoll, riktad avskiljning, valbar gore och genomarbetade mellanmiljöer. **Gore ska vara PÅ från första starten.** Sparad avstängning respekteras. Den detaljerade [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md), inklusive förberedda snittzoner, godkändes 2026-09-05. [Leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md) visar byggordningen. M0 och fysikgrunden är granskade. En lokal spelbar PC-teknikgård är implementerad med 31 modultester och fyra webbläsartester som passerar; dess oberoende slutgranskning pågår. Det historiska kapitlet är inte färdigt.
+Arbetstitel. Simon har godkänt **senmedeltid med tidsbrott** och den systemdrivna första etappen, med tillägg om magisk avståndsstrid, verklig NPC-ragdoll, riktad avskiljning, valbar gore och genomarbetade mellanmiljöer. **Gore ska vara PÅ från första starten.** Sparad avstängning respekteras. Den detaljerade [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md), inklusive förberedda snittzoner, godkändes 2026-09-05. [Leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md) visar byggordningen. M0, fysikgrunden och en lokal spelbar PC-teknikgård är implementerade och oberoende granskade, med 31 modultester och fem webbläsartester som passerar. Windows-paketeringen pågår. Det historiska kapitlet är inte färdigt.
 
 ## Spelet vi vill göra
 
@@ -151,4 +151,4 @@ Cloudflare Pages anger högst 25 MiB per statisk fil. Staden bör därför lever
 
 ## Beslutet härnäst
 
-Spelriktningen, första etappen och den skrivna [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md) är godkända med användarens tillägg. Den spelbara PC-teknikgården granskas; Windows-paketering följer enligt [leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md). Grip, magiska projektiler och övriga kapitelmekaniker återstår. Alla fem landmärken och fem skolor ligger kvar i helhetsvisionen. Ingen publicering är genomförd.
+Spelriktningen, första etappen och den skrivna [kapitelspecen](superpowers/specs/2026-09-05-vadstena-chapter-design.md) är godkända med användarens tillägg. Den spelbara PC-teknikgården är granskad; Windows-paketering pågår enligt [leveranskartan](superpowers/plans/2026-09-05-vadstena-delivery-map.md). Grip, magiska projektiler och övriga kapitelmekaniker återstår. Alla fem landmärken och fem skolor ligger kvar i helhetsvisionen. Ingen publicering är genomförd.

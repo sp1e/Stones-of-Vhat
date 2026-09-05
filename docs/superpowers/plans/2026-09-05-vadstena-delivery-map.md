@@ -57,7 +57,7 @@ All ny spelkod placeras under `game/`, med egen `game/.gitignore`. Dokumenten li
 
 ## Verifierad verktygsbas, 2026-09-05
 
-Lokal miljö: Node 24.16.0, npm 11.13.0. TypeScript 7.0.2, Vite 8.2.2, Three 0.185.1, @types/three 0.185.4, @dimforge/rapier3d-compat 0.20.0 och Playwright 1.63.0 är installerade och låsta. M0, browserlagring och den riktiga fysikgården klarar strikt typkontroll och 31 tester, med oberoende granskning av fysikkorrigeringen. Chromium 153.0.8010.12 har verifierat WebGL2 via SwiftShader; det är ett verktygsprov, inte en uppmätt spelprestanda. PC-vyn och Windows-paketeringen byggs därefter.
+Lokal miljö: Node 24.16.0, npm 11.13.0. TypeScript 7.0.2, Vite 8.2.2, Three 0.185.1, @types/three 0.185.4, @dimforge/rapier3d-compat 0.20.0 och Playwright 1.63.0 är installerade och låsta. PC-teknikgården klarar strikt typkontroll, 31 modultester och fem webbläsartester. Både fysik och browserintegration är oberoende granskade; verklig BFCache-återställning ingår efter en funnen och rättad regression. Chromium 153.0.8010.12 renderar via SwiftShader; ingen hårdvaru-FPS hävdas. Windows-paketeringen implementeras enligt [separat plan](2026-09-05-windows-portable.md).
 
 M0 använder Nodes inbyggda testkörning för rena TypeScript-moduler och separat TypeScript-typkontroll. Ingen renderer eller WASM behövs för dessa tester. Node tar bort typannoteringar men gör inte typkontroll; därför är båda kommandona obligatoriska. [Node TypeScript](https://nodejs.org/api/typescript.html), [Node test runner](https://nodejs.org/api/test.html).
 
@@ -73,7 +73,8 @@ Rapier 0.20.0:s `castShape` har `targetDistance` före `maxToi`; äldre kodexemp
 - [x] Simon godkände separat worktree. Arbetskopia: `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation`, gren `codex/vadstena-runtime-foundation`. Global placering bevarar originalets användarägda konfigurationsfiler orörda.
 - [x] M0 implementerad och granskad: 16/16 tester, godkänd typkontroll och oberoende slutgranskning utan fynd. Resultat i [M0-protokollet](2026-09-05-runtime-foundation-results.md).
 - [x] M1A:s browserverktyg, preferenslagring och riktiga fysikvärld implementerade och granskade; 31 tester. Se [fysikprotokollet](2026-09-05-physical-courtyard-results.md).
-- [ ] M1A:s spelbara PC-vy och separata Windows `.exe` byggda och verifierade.
+- [x] M1A:s spelbara PC-vy byggd, testad och oberoende granskad: 6d92691 + 7ca88a0, 31 modultester och fem webbläsartester. Se [browserprotokollet](2026-09-05-playable-courtyard-results.md).
+- [ ] M1A:s separata Windows `.exe` byggd och verifierad; paketeringen pågår.
 - [ ] M1B:s Grip och magiska projektiler implementerade och verifierade; först då är hela M1 klar.
 - [ ] M2–M5 planerade och genomförda i beroendeordning.
 

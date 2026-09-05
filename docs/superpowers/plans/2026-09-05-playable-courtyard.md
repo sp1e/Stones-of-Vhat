@@ -8,6 +8,12 @@
 
 ---
 
+## Completion and evidence-based adjustments
+
+Implemented at 6d92691 with BFCache recovery at 7ca88a0. Strict types, 31 native tests, five browser tests and production build pass. Spec review and quality review are approved; the quality review's real navigation finding was fixed and independently rechecked. Both menu and gameplay captures were visually inspected, and the local PC preview was opened without deployment.
+
+The source snippets below preserve the original execution plan. Two observed regressions refined the implementation: an explicit Vite serve/build constant replaced the leaking development-hook gate, and a durable persisted-pageshow reload now rebuilds a BFCache-restored document after pagehide disposal. A real full-Chromium navigation test verifies the latter; the ordinary headless-shell suite alone cannot cover BFCache. See [actual results](2026-09-05-playable-courtyard-results.md) and current source for the final implementation.
+
 ## File map
 
 Work only in C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation.
@@ -27,7 +33,7 @@ Prerequisites: reviewed browser foundation and physical courtyard plans. Do not 
 
 ## Task 1: Playable browser surface
 
-- [ ] Create browser tests before browser production files, then install the pinned Chromium runtime using `rtk node game/node_modules/playwright/cli.js install chromium`. This is the test browser, not a project package addition.
+- [x] Create browser tests before browser production files, then install the pinned Chromium runtime using `rtk node game/node_modules/playwright/cli.js install chromium`. This is the test browser, not a project package addition.
 
 ~~~js
 // game/browser/yard.spec.mjs
@@ -115,9 +121,9 @@ test('context loss pauses and exposes recovery, not a frozen blank game', async 
 });
 ~~~
 
-- [ ] Run `rtk node --test game/browser/yard.spec.mjs`. Expected RED: page has no playable start UI. A missing browser executable, occupied port, or module-load failure is a harness error, not successful RED; fix harness first.
+- [x] Run `rtk node --test game/browser/yard.spec.mjs`. Expected RED: page has no playable start UI. A missing browser executable, occupied port, or module-load failure is a harness error, not successful RED; fix harness first.
 
-- [ ] Add scripts to existing package.json (retain every existing field):
+- [x] Add scripts to existing package.json (retain every existing field):
 
 ~~~json
 "dev": "vite --host 127.0.0.1",
@@ -126,7 +132,7 @@ test('context loss pauses and exposes recovery, not a frozen blank game', async 
 "test:browser": "node --test browser/*.spec.mjs"
 ~~~
 
-- [ ] Create game/vite.config.ts and game/src/vite-env.d.ts:
+- [x] Create game/vite.config.ts and game/src/vite-env.d.ts:
 
 ~~~ts
 // game/vite.config.ts
@@ -138,7 +144,7 @@ export default defineConfig({ base: '/vadstena/', server: { host: '127.0.0.1' } 
 /// <reference types="vite/client" />
 ~~~
 
-- [ ] Create game/index.html:
+- [x] Create game/index.html:
 
 ~~~html
 <!doctype html>
@@ -167,7 +173,7 @@ export default defineConfig({ base: '/vadstena/', server: { host: '127.0.0.1' } 
 </body></html>
 ~~~
 
-- [ ] Create game/src/style.css:
+- [x] Create game/src/style.css:
 
 ~~~css
 :root{font-family:Georgia,'Times New Roman',serif;color:#e8e4d4;background:#141d1c;font-synthesis:none;color-scheme:dark}
@@ -183,7 +189,7 @@ details{border-top:1px solid #a6a98930;padding-top:16px}summary{font:12px system
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 ~~~
 
-- [ ] Create game/src/input/browserInput.ts:
+- [x] Create game/src/input/browserInput.ts:
 
 ~~~ts
 import { createActionBuffer } from './actionBuffer.ts';
@@ -232,7 +238,7 @@ export function createBrowserInput(onPause: () => void) {
 }
 ~~~
 
-- [ ] Create game/src/render/yardView.ts:
+- [x] Create game/src/render/yardView.ts:
 
 ~~~ts
 import * as THREE from 'three';
@@ -329,7 +335,7 @@ export function createYardView(host: HTMLElement) {
 }
 ~~~
 
-- [ ] Create game/src/main.ts:
+- [x] Create game/src/main.ts:
 
 ~~~ts
 import './style.css';
@@ -473,12 +479,12 @@ showPreference();
 }
 ~~~
 
-- [ ] Run `rtk npm --prefix game run check`, `rtk npm --prefix game run build`, `rtk npm --prefix game run test:browser`. Fix actual observed problems through failing regression tests. Browser timing assertions must wait for simulation ticks, not infer movement from a screenshot.
-- [ ] Inspect PC menu and gameplay screenshots visually. Fix illegible controls, clipped panels, blocked gameplay space or incorrect geometry with a documented browser reproduction, then recapture. Check multiple PC window sizes. Record viewport/browser/renderer; headless software rendering is not a hardware 60 FPS result.
-- [ ] Exercise visibility/blur and held-key clearing in the browser before completion. Add a browser regression test if behavior fails. Check nested /vadstena/ production preview loads, no resource 404s, no uncaught errors, no dev diagnostics in production.
-- [ ] Update README with actual local start URL/commands, controls, implemented M1A functions and explicitly absent magic/combat/NPC/ragdoll/final assets. Record validation evidence and screenshot paths in the results document.
-- [ ] Run `rtk git diff --check`; scoped commit `feat: make the physics courtyard playable in browser`.
-- [ ] Independent spec review followed by quality review. Resolve findings, rerun final integrated checks and show the local preview. No deployment.
+- [x] Run `rtk npm --prefix game run check`, `rtk npm --prefix game run build`, `rtk npm --prefix game run test:browser`. Fix actual observed problems through failing regression tests. Browser timing assertions must wait for simulation ticks, not infer movement from a screenshot.
+- [x] Inspect PC menu and gameplay screenshots visually. Fix illegible controls, clipped panels, blocked gameplay space or incorrect geometry with a documented browser reproduction, then recapture. Check multiple PC window sizes. Record viewport/browser/renderer; headless software rendering is not a hardware 60 FPS result.
+- [x] Exercise visibility/blur and held-key clearing in the browser before completion. Add a browser regression test if behavior fails. Check nested /vadstena/ production preview loads, no resource 404s, no uncaught errors, no dev diagnostics in production.
+- [x] Update README with actual local start URL/commands, controls, implemented M1A functions and explicitly absent magic/combat/NPC/ragdoll/final assets. Record validation evidence and screenshot paths in the results document.
+- [x] Run `rtk git diff --check`; scoped commit `feat: make the physics courtyard playable in browser`.
+- [x] Independent spec review followed by quality review. Resolve findings, rerun final integrated checks and show the local preview. No deployment.
 
 ## Controller self-review
 
