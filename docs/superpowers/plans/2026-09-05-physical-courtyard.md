@@ -311,4 +311,3 @@ export type Yard = Awaited<ReturnType<typeof createYard>>;
 ## Controller self-review
 
 This implements M1A physics only, not the entire M1. Flat floor colliders avoid decorative cobble jitter. Authored ramps, low passage, stairs, walls and four prop types give the subsequent playable view useful movement/interaction checks. Standing uses volume clearance, not just a head ray. World snapshots have no shared mutable physics state; destroy is a real lifecycle API, not a test-only hook. Nine-link severing, magic, NPCs, final historical reconstruction and saves remain in their approved later milestones. No renderer or browser is claimed here.
-

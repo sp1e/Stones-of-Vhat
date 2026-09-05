@@ -154,4 +154,3 @@ Coverage: this bounded plan covers toolchain and preference persistence only. M1
 Types: StoredPreference.status maps the codec source plus unavailable; value copies prevent mutation through reads.
 Failure behavior: loading invalid data does not overwrite user storage; write/getter denial preserves the session choice.
 No placeholder code or undefined production helpers are required.
-
