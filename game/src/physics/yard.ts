@@ -32,6 +32,8 @@ export type YardSnapshot = {
 const RADIUS = 0.3;
 const STANDING_HALF = 0.55;
 const CROUCHING_HALF = 0.25;
+const COLLISION_OFFSET = 0.01;
+const SLIDE_ANGLE = 50 * Math.PI / 180;
 const IDENTITY: Rotation = { x: 0, y: 0, z: 0, w: 1 };
 let initialization: Promise<void> | undefined;
 
@@ -79,14 +81,11 @@ export async function createYard(options: {
     const spawn = options.spawn ?? { x: 0, y: 1, z: 8 };
     const player = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(spawn.x, spawn.y, spawn.z));
     const playerCollider = world.createCollider(RAPIER.ColliderDesc.capsule(half, RADIUS).setFriction(0.7), player);
-    const controller = world.createCharacterController(0.01);
-    // A 2 mm normal nudge keeps capsule/large-floor casts stable at metre scale.
-    // Rapier's 0.1 mm default can lose a movement tick at a near-tangent floor hit.
-    controller.setNormalNudgeFactor(0.002);
+    const controller = world.createCharacterController(COLLISION_OFFSET);
     controller.enableAutostep(0.25, 0.35, false);
     controller.enableSnapToGround(0.2);
     controller.setMaxSlopeClimbAngle(Math.PI / 4);
-    controller.setMinSlopeSlideAngle(50 * Math.PI / 180);
+    controller.setMinSlopeSlideAngle(SLIDE_ANGLE);
     controller.setApplyImpulsesToDynamicBodies(true);
     controller.setCharacterMass(80);
 
@@ -131,7 +130,20 @@ export async function createYard(options: {
           }
         }
 
+        // On a nearby non-sliding support, snap-to-ground supplies adhesion.
+        // Constant downward input can make Rapier's float slope decomposition
+        // mistake a level contact for slipping and discard horizontal movement.
+        // A centre-foot ray verifies support without a near-tangent shape cast.
+        // Unsupported and steep contacts still receive gravity, and every
+        // movement still goes through the KCC's full capsule collision sweep.
+        const support = grounded ? world.castRayAndGetNormal(
+          new RAPIER.Ray(player.translation(), { x: 0, y: -1, z: 0 }),
+          half + RADIUS + COLLISION_OFFSET + 0.05, true,
+          RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, playerCollider, player,
+        ) : null;
+        const supported = support !== null && support.normal.y / Math.hypot(support.normal.x, support.normal.y, support.normal.z) > Math.cos(SLIDE_ANGLE);
         if (grounded && intent.jump && !crouched) verticalVelocity = 5.5;
+        else if (supported) verticalVelocity = 0;
         else if (grounded) verticalVelocity = -1;
         else verticalVelocity = Math.max(-30, verticalVelocity - 18 * FIXED_DT);
         const divisor = Math.max(1, Math.hypot(intent.right, intent.forward));

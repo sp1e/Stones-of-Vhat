@@ -48,6 +48,73 @@ test('walk, diagonal movement, and sprint use physical distances', async () => {
   assert.ok(Math.abs(crouch - 2) < 0.08, `crouch distance ${crouch}`);
 });
 
+test('flat-floor walking does not stall at rotated headings or signed diagonals', async () => {
+  const headings = new Set([-Math.PI / 8, -Math.PI / 4, ...Array.from({ length: 32 }, (_, index) => index * Math.PI / 16)]);
+  for (const yaw of headings) {
+    const distances = [];
+    for (const axes of [{ forward: 1 }, { forward: -1 }, { right: 1 }, { right: -1 }, { right: 1, forward: 1 }, { right: -1, forward: -1 }, { right: -1, forward: 1 }, { right: 1, forward: -1 }]) {
+      await withYard({}, (yard) => {
+        let previous = run(yard, 60).player.position;
+        const start = previous;
+        for (let tick = 0; tick < 120; tick += 1) {
+          const current = run(yard, 1, { ...axes, yaw }).player;
+          const advance = Math.hypot(current.position.x - previous.x, current.position.z - previous.z);
+          assert.ok(advance > 0.06, `flat-floor stall: yaw=${yaw}, axes=${JSON.stringify(axes)}, tick=${tick}, advance=${advance}, y=${current.position.y}`);
+          assert.equal(current.grounded, true);
+          assert.ok(Math.abs(current.position.y - previous.y) < 0.015, `floor vertical jitter at yaw=${yaw}, tick=${tick}`);
+          previous = current.position;
+          if (tick === 59) distances.push(Math.hypot(previous.x - start.x, previous.z - start.z));
+        }
+      });
+    }
+    for (const distance of distances) assert.ok(Math.abs(distance - 4.2) < 0.05, `yaw=${yaw}, distance=${distance}`);
+    assert.ok(Math.max(...distances) - Math.min(...distances) < 0.05, `heading-dependent travel at yaw=${yaw}: ${distances}`);
+  }
+});
+
+test('ground adhesion descends the authored ramp and stairs and releases at a ledge', async () => {
+  assert.equal(typeof api.createYard, 'function');
+  const authored = await api.createYard();
+  const layout = authored.layout;
+  authored.destroy();
+  for (const fixture of [
+    { layout: [floor, layout.find((body) => body.id === 'ramp')], spawn: { x: 6, y: 3, z: -7.9 }, ticks: 90 },
+    { layout: [floor, ...layout.filter((body) => body.id.startsWith('stair-'))], spawn: { x: -5, y: 3, z: -4.2 }, ticks: 80 },
+  ]) {
+    await withYard(fixture, (yard) => {
+      const start = run(yard, 90).player;
+      assert.ok(start.position.y > 1.7);
+      let previous = start.position;
+      for (let tick = 0; tick < fixture.ticks; tick += 1) {
+        const current = run(yard, 1, { forward: -1 }).player.position;
+        assert.ok(current.y < previous.y + 0.03, `unexpected upward bump while descending: ${previous.y} -> ${current.y}`);
+        previous = current;
+      }
+      const end = run(yard, 60).player;
+      assert.equal(end.grounded, true);
+      assert.ok(Math.abs(end.position.y - 0.86) < 0.03);
+      assert.ok(end.position.z > start.position.z + 4.5);
+    });
+  }
+  await withYard({ layout: [floor, box('ledge', [4, 2, 4], { x: 0, y: 1, z: 8 })], spawn: { x: 0, y: 3, z: 8 } }, (yard) => {
+    const start = run(yard, 90).player;
+    assert.ok(start.position.y > 2.8);
+    const falling = run(yard, 45, { forward: 1 }).player;
+    assert.equal(falling.grounded, false);
+    assert.ok(falling.position.y < start.position.y - 0.1);
+    const landed = run(yard, 120).player;
+    assert.equal(landed.grounded, true);
+    assert.ok(Math.abs(landed.position.y - 0.86) < 0.03);
+  });
+  const steep = { ...box('steep-slope', [4, 0.3, 8], { x: 0, y: 3, z: 0 }), rotation: { x: Math.sin(Math.PI / 6), y: 0, z: 0, w: Math.cos(Math.PI / 6) } };
+  await withYard({ layout: [floor, steep], spawn: { x: 0, y: 7, z: -1 } }, (yard) => {
+    const start = run(yard, 30).player.position;
+    const slipped = run(yard, 60).player.position;
+    assert.ok(slipped.y < start.y - 0.5, 'steep support must retain downward gravity');
+    assert.ok(slipped.z > start.z + 0.3, 'the capsule must slide along the steep slope');
+  });
+});
+
 test('capsule stops at walls and autosteps onto low stone steps', async () => {
   await withYard({ layout: [floor, box('wall', [6, 3, 0.4], { x: 0, y: 1.5, z: 5 })] }, (yard) => {
     run(yard, 60);
