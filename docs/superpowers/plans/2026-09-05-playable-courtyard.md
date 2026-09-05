@@ -309,9 +309,9 @@ export function createYardView(host: HTMLElement) {
       for (const body of layout) {
         const shape = body.shape;
         const geometry = shape.kind === 'box' ? new THREE.BoxGeometry(...shape.size) : shape.kind === 'ball' ? new THREE.IcosahedronGeometry(shape.radius, 2) : new THREE.CylinderGeometry(shape.radius, shape.radius, shape.height, 20);
-        const material = new THREE.MeshStandardMaterial({ color: body.id === 'ground' ? '#ffffff' : body.color, roughness: 0.92, ...(body.id === 'ground' ? { map: stoneTexture } : {}) });
+        const material = new THREE.MeshStandardMaterial({ color: body.id === 'floor' ? '#ffffff' : body.color, roughness: 0.92, ...(body.id === 'floor' ? { map: stoneTexture } : {}) });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.castShadow = body.id !== 'ground';
+        mesh.castShadow = body.id !== 'floor';
         mesh.receiveShadow = true;
         scene.add(mesh);
         meshes.set(body.id, mesh);
@@ -368,7 +368,8 @@ function showPreference() {
 }
 showPreference();
 
-if (matchMedia('(pointer: coarse)').matches && innerWidth < 900) {
+if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches) {
+  document.body.style.overflow = 'auto';
   panel.hidden = true;
   document.querySelector<HTMLElement>('#compatibility')!.hidden = false;
   document.querySelector<HTMLElement>('#hud')!.hidden = true;
@@ -376,6 +377,7 @@ if (matchMedia('(pointer: coarse)').matches && innerWidth < 900) {
   let yard: Yard | undefined;
   let view: ReturnType<typeof createYardView> | undefined;
   let running = false;
+  let interpolate = false;
   let failed = false;
   let disposed = false;
   let busy = true;
@@ -389,6 +391,7 @@ if (matchMedia('(pointer: coarse)').matches && innerWidth < 900) {
   const input = createBrowserInput(() => pause());
   function pause(message = 'Pausat — gården väntar.') {
     running = false;
+    interpolate = false;
     input.setActive(false);
     advance(0, false, () => {});
     panel.hidden = false;
@@ -475,10 +478,10 @@ if (matchMedia('(pointer: coarse)').matches && innerWidth < 900) {
         if (disposed || failed) return;
         const elapsed = (now - last) / 1000;
         last = now;
-        const result = advance(elapsed, running, () => yard!.step(input.sample()));
+        const result = advance(elapsed, running, () => { yard!.step(input.sample()); interpolate = true; });
         tick = result.tick;
         const look = input.look();
-        view!.render(yard!.snapshot(), running ? result.alpha : 1, look.yaw, look.pitch);
+        view!.render(yard!.snapshot(), running && interpolate ? result.alpha : 1, look.yaw, look.pitch);
         frame = requestAnimationFrame(loop);
       }
       frame = requestAnimationFrame(loop);

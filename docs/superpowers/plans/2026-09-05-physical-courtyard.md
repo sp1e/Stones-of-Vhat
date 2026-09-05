@@ -148,7 +148,7 @@ export type BodyDefinition = {
 const box = (id: string, size: readonly [number, number, number], position: Vec3, color: string, mass?: number): BodyDefinition =>
   ({ id, shape: { kind: 'box', size }, position, color, ...(mass === undefined ? {} : { mass }) });
 export const YARD_LAYOUT: readonly BodyDefinition[] = [
-  box('ground', [24, 1, 24], { x: 0, y: -0.5, z: 0 }, '#64665c'),
+  box('floor', [24, 1, 24], { x: 0, y: -0.5, z: 0 }, '#64665c'),
   box('north', [24, 3, 0.6], { x: 0, y: 1.5, z: -12 }, '#747566'),
   box('south', [24, 3, 0.6], { x: 0, y: 1.5, z: 12 }, '#747566'),
   box('west', [0.6, 3, 24], { x: -12, y: 1.5, z: 0 }, '#747566'),
@@ -325,5 +325,29 @@ Changed only the compiler library list to:
 ~~~
 
 The bootstrap assertion and strict typecheck now pass. ES2022 output target and full declaration checking remain intact; no skipLibCheck or runtime dependency change was used. Physics trajectory validation remains the builder's responsibility.
+
+The builder's unchanged movement test required controller.setNormalNudgeFactor(0.002) to avoid near-tangent floor-cast stalls. Rapier describes this parameter as a small contact-normal distance and cautions against values large enough to introduce bumps; see [upstream controller source](https://docs.rs/rapier3d/latest/src/rapier3d/control/character_controller.rs.html). The local metre-scale value was verified against straight/diagonal travel, stairs, ramp, roof and dynamic pushing. This is targeted numerical tuning, not bypassed collision detection.
+
+### Quality finding: extend movement coverage before integration
+
+The initial movement test covered yaw zero only. Independent quality review reproduced stalls at yaw PI/8 and PI/4; 0.002 is therefore not a complete fix. Add rotated-direction coverage before correcting production code. The acceptance regression is:
+
+~~~js
+for (const yaw of [0, Math.PI / 8, -Math.PI / 8, Math.PI / 4, -Math.PI / 4, Math.PI / 2, Math.PI]) {
+  for (const direction of [{ forward: 1 }, { forward: -1 }, { forward: 1, right: 1 }]) {
+    await withYard({}, yard => {
+      let previous = run(yard, 60).player.position;
+      for (let tick = 0; tick < 120; tick++) {
+        const current = run(yard, 1, { ...direction, yaw }).player.position;
+        const distance = Math.hypot(current.x - previous.x, current.z - previous.z);
+        assert.ok(distance > 0.06 && distance < 0.08, 'flat-floor walking must not stall at rotated yaw');
+        previous = current;
+      }
+    });
+  }
+}
+~~~
+
+Use the same real 40m floor fixture; preserve all existing movement-distance and collision assertions. Investigate contact stability and vertical jitter, not just a single passing angle. No teleporting through contacts, no filtered-out floor collision, and no extra world steps per public step. Record the demonstrated cause, justified correction, RED/GREEN and review follow-up in the results document.
 
 This implements M1A physics only, not the entire M1. Flat floor colliders avoid decorative cobble jitter. Authored ramps, low passage, stairs, walls and four prop types give the subsequent playable view useful movement/interaction checks. Standing uses volume clearance, not just a head ray. World snapshots have no shared mutable physics state; destroy is a real lifecycle API, not a test-only hook. Nine-link severing, magic, NPCs, final historical reconstruction and saves remain in their approved later milestones. No renderer or browser is claimed here.
