@@ -19,7 +19,7 @@ Verifiering:
     rtk npm --prefix game run check
     rtk npm --prefix game run test:browser
 
-Implementerat i M1A: förstapersonsrörelse, sprint, hopp, hukning, trappor, ramp, låg passage, fem fysiska rekvisitaobjekt, paus/fokusgrind, beständig inställning, ren återstart av fysikvärlden och återhämtning via omladdning vid WebGL-kontextförlust.
+Implementerat i M1A: förstapersonsrörelse, sprint, hopp, hukning, trappor, ramp, låg passage, fem fysiska rekvisitaobjekt, paus/fokusgrind, beständig inställning, ren återstart av fysikvärlden samt säker omladdningsåterhämtning vid WebGL-kontextförlust och återkomst från browserns sidcache.
 
 Inte implementerat ännu: fysisk Grip, projektiler, NPC:er, strid, ragdoll, gore-grafik, historisk spelvärld eller Windows `.exe`. Webbarkitekturen är hållen browser- och wrapper-kompatibel inför separat framtida paketering.
 

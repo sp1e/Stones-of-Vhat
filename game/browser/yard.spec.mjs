@@ -212,3 +212,60 @@ test('production preview serves the nested base path and strips development diag
     production.httpServer.close();
   }
 });
+
+test('a real BFCache restoration reloads the disposed page into a fresh paused game', { timeout: 60_000 }, async () => {
+  await build({ configFile: join(root, 'vite.config.ts'), root, logLevel: 'error' });
+  const production = await preview({
+    configFile: join(root, 'vite.config.ts'),
+    root,
+    logLevel: 'error',
+    preview: { host: '127.0.0.1', port: 4180, strictPort: true },
+  });
+  let fullBrowser;
+  let context;
+  try {
+    fullBrowser = await chromium.launch({
+      channel: 'chromium',
+      headless: true,
+      ignoreDefaultArgs: ['--disable-back-forward-cache'],
+      args: ['--enable-unsafe-swiftshader'],
+    });
+    context = await fullBrowser.newContext({ viewport: { width: 1200, height: 800 } });
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.addEventListener('pagehide', (event) => {
+        if (event.persisted) window.sessionStorage.setItem('yard:test:pagehide-persisted', 'true');
+      });
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) window.sessionStorage.setItem('yard:test:pageshow-persisted', 'true');
+      });
+    });
+    const assertNoFailures = observeFailures(page);
+    await page.goto('http://127.0.0.1:4180/vadstena/');
+    await page.waitForFunction(() => !document.querySelector('#start').disabled);
+    await page.locator('#controls summary').click();
+    await page.locator('#gore').uncheck();
+    await page.goto('http://localhost:4180/vadstena/');
+    await page.waitForFunction(() => !document.querySelector('#start').disabled);
+    await page.goBack({ waitUntil: 'commit' });
+    await page.waitForFunction(() => (
+      window.sessionStorage.getItem('yard:test:pagehide-persisted') === 'true'
+      && window.sessionStorage.getItem('yard:test:pageshow-persisted') === 'true'
+    ));
+    await page.waitForFunction(() => document.querySelectorAll('#viewport canvas').length === 1, undefined, { timeout: 5_000 });
+    await page.waitForFunction(() => !document.querySelector('#start').disabled);
+
+    assert.equal(await page.evaluate(() => performance.getEntriesByType('navigation')[0]?.type), 'reload');
+    assert.equal(await page.locator('#gore').isChecked(), false);
+    assert.equal(await page.locator('#panel').isVisible(), true);
+    await page.locator('#start').click();
+    await page.waitForFunction(() => document.pointerLockElement instanceof HTMLCanvasElement && !document.querySelector('#crosshair').hidden);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('#crosshair').hidden);
+    assertNoFailures();
+  } finally {
+    await context?.close();
+    await fullBrowser?.close();
+    production.httpServer.close();
+  }
+});

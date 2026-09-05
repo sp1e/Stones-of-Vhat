@@ -26,6 +26,12 @@ const restartButton = requireElement<HTMLButtonElement>('#restart');
 const reloadButton = requireElement<HTMLButtonElement>('#reload');
 const goreCheckbox = requireElement<HTMLInputElement>('#gore');
 
+// pagehide disposes every owned resource. This listener deliberately outlives
+// that aborted lifecycle so a BFCache restoration can rebuild via a real load.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload();
+});
+
 const preferences = createPreferenceStore(() => window.localStorage);
 const initialPreference = preferences.read();
 goreCheckbox.checked = initialPreference.value.goreEnabled;
