@@ -169,7 +169,9 @@ Okänd sparversion, misslyckad asset-/WASM-laddning, saknat grafikstöd och kont
 
 En kompakt statusgrupp visar hälsa/fokus/valt verktyg; kort mål och tillfälliga interaktionsledtrådar kompletterar. Mittfältet lämnas fritt för siktning och fysisk läsbarhet. Menyer är DOM-baserade med tangentbordsfokus, läsbar typografi och tydliga val. Paus släpper muslås och blockerar kamera, kast och skada.
 
-Inställningar omfattar gore PÅ/AV, grafiknivå, textstorlek, undertexter/visuella ljudledtrådar, känslighet, FOV, inverterad mus, kameraskakning och reducerade blixteffekter. Tillgänglighetsval får inte automatiskt ändra gore; inställningarna är oberoende. Mobil får fungerande information och kompatibilitetsvy; mobil FPS-styrning ingår inte i kapitlet.
+Inställningar omfattar gore PÅ/AV, grafiknivå, textstorlek, undertexter/visuella ljudledtrådar, känslighet, FOV, inverterad mus, kameraskakning och reducerade blixteffekter. Tillgänglighetsval får inte automatiskt ändra gore; inställningarna är oberoende. **Plattformsändring godkänd av Simon 2026-09-05:** PC prioriteras; både mobilstyrning och särskild mobil-/kompatibilitetsvy skjuts upp. Testning fokuserar på PC med tangentbord och mus.
+
+Utöver PC-webbversionen ska en körbar Windows-version i `.exe` levereras. Första paketeringsmålet är en portabel lokal version utan installationskrav. Samma spelkod och spelregler används; paketering, lokala inställningar och start/omstart verifieras separat. Signering och offentlig distribution får inte påstås utförda utan verifierad evidens.
 
 Publiceringsformen förblir ett separat statiskt spelbygge, senare exempelvis på `/vadstena/`. Föregående förstudie identifierade en WASM/CSP-fråga i hemsidans konfiguration. Den måste kontrolleras mot då aktuell konfiguration vid integration; ingen policy eller hemsidefil ändras i specarbetet. Filstorleks- och leveranskrav återfinns i konceptunderlaget. Ingen automatisk push eller driftsättning ingår i detta godkännandesteg.
 

@@ -4,7 +4,7 @@ Updated 2026-09-05. Coordinator owns this file.
 
 ## Outcome and scope
 
-Continue the approved Vadstena chapter in the existing linked worktree, beginning with a playable M1A physics courtyard. M1B magic, M2 ragdolls/severing, M3 historical environment and later chapter systems remain in scope for subsequent milestones. No website changes or deployment in this increment.
+Continue the approved Vadstena chapter in the existing linked worktree, beginning with a playable M1A physics courtyard. User update 2026-09-05: focus PC, defer all dedicated mobile work, and also deliver a Windows .exe. Keep PC web build; first desktop packaging target is a local portable executable. M1B magic, M2 ragdolls/severing, M3 historical environment and later chapter systems remain in scope for subsequent milestones. No website changes, public deployment or signing claim in this increment.
 
 Worktree: C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation
 Branch: codex/vadstena-runtime-foundation
@@ -19,6 +19,7 @@ Branch: codex/vadstena-runtime-foundation
 | Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Complete 6389f15, 31 tests pass; physics_quality independently confirms its important finding resolved and approves integration |
 | Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Implementing the browser contract after reviewed physics; owns browser files/tests/README/results only |
 | Integrated browser QA and visual checks | Coordinator and fresh reviewer | Pending actual playable build |
+| Windows portable .exe packaging | windows_packaging_research (gpt-5.6-terra/high), read-only | Checking official packaging/security/persistence APIs and local prerequisites; implementation plan follows |
 
 ## Team workflow decisions
 
@@ -40,4 +41,5 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 - Coordinator also walked the actual five-step staircase through the physics API: maximum capsule-center height 1.9663 m, traversed to z=-6.0501, 21 bodies/colliders. This is a read-only trajectory diagnostic, not a rendered playtest.
 - Physics spec review allocation uses gpt-5.6-terra/high for bounded contract/test comparison. The subsequent deeper quality review will use gpt-6-astra/high for ownership and controller edge cases.
 - Correction uses a short centre-foot support ray for adhesion classification, not movement collision. Full capsule sweeps and stand clearance remain. The 0.002 nudge override was removed. Expanded 272-world/32,640-tick regression passes, plus actual descending stairs/ramp, ledge fall and steep sliding; maximum observed vertical tick change is 7.391mm, not zero jitter.
-- Next: integrate and test the playable browser view, inspect actual screenshots, then perform fresh spec and integrated quality review.
+- PC scope update sent to the browser builder: remove mobile UI/branch/test; preserve PC resize/accessibility, add Windows packaging only in a separate owned task. Research agent is read-only, so there is still only one implementation owner active.
+- Next: integrate and test the PC browser view, inspect actual screenshots and review; then build and verify the requested portable Windows .exe using the same game code.

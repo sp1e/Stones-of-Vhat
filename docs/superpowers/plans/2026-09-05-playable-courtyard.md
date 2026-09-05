@@ -14,9 +14,9 @@ Work only in C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runti
 - game/package.json: add browser/build scripts, retain existing scripts/dependencies.
 - game/tests/browserFoundation.test.mjs: extend its exact scripts contract with the four required browser/build commands before changing package.json; browser builder owns this narrow adjustment.
 - game/vite.config.ts: nested-path build, local-only server.
-- game/index.html: loading/paused UI, accessibility and compatibility messaging.
+- game/index.html: loading/paused PC UI, accessibility and recovery messaging.
 - game/src/vite-env.d.ts: Vite client types.
-- game/src/style.css: sparse HUD, legible modal-like paused panel, mobile fallback.
+- game/src/style.css: sparse HUD and legible paused panel across PC window sizes.
 - game/src/render/yardView.ts: Three scene, deterministic stone texture, interpolation and disposal.
 - game/src/input/browserInput.ts: physical keys, logical actions, mouse look and listener ownership.
 - game/src/main.ts: lifecycle, pause, preference UI, fixed loop and read-only dev diagnostics.
@@ -96,17 +96,6 @@ test('desktop movement, pause, preferences and ten in-place restarts', async () 
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
 });
-test('touch devices get an honest compatibility screen', async () => {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  const page = await context.newPage();
-  try {
-    await page.goto('http://127.0.0.1:4173/vadstena/');
-    await page.locator('#compatibility:not([hidden])').waitFor();
-    assert.equal(await page.locator('canvas').count(), 0);
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await page.screenshot({ path: output + '/mobile-compatibility.png' });
-  } finally { await context.close(); }
-});
 test('context loss pauses and exposes recovery, not a frozen blank game', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
@@ -126,7 +115,7 @@ test('context loss pauses and exposes recovery, not a frozen blank game', async 
 });
 ~~~
 
-- [ ] Run `rtk node --test game/browser/yard.spec.mjs`. Expected RED: page has no playable start/compatibility UI. A missing browser executable, occupied port, or module-load failure is a harness error, not successful RED; fix harness first.
+- [ ] Run `rtk node --test game/browser/yard.spec.mjs`. Expected RED: page has no playable start UI. A missing browser executable, occupied port, or module-load failure is a harness error, not successful RED; fix harness first.
 
 - [ ] Add scripts to existing package.json (retain every existing field):
 
@@ -173,7 +162,6 @@ export default defineConfig({ base: '/vadstena/', server: { host: '127.0.0.1' } 
   </details>
   <p class="scope">Testa trappan till vänster, den låga passagen till höger och föremålen på gården. Prototypgeometri — inte en historisk rekonstruktion.</p>
 </main>
-<section id="compatibility" hidden><span class="eyebrow">VADSTENA · TEKNIKGÅRDEN</span><h1>En plats att<br>återvända till.</h1><p>Den här förstapersonsprototypen kräver dator med tangentbord och mus. Öppna den på en dator för att utforska gården.</p><p class="scope">Mobil spelkontroll ingår inte i den här etappen.</p></section>
 <footer id="footer">FYSIKPROTOTYP <span>WASD · MUS · ESC</span></footer>
 <script type="module" src="/src/main.ts"></script>
 </body></html>
@@ -192,8 +180,6 @@ h1{font-size:clamp(38px,4vw,58px);line-height:1.02;font-weight:400;letter-spacin
 .buttons{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}button{border:1px solid #c3ad79;background:#d2ba83;color:#18211e;padding:13px 18px;font:600 12px system-ui,sans-serif;letter-spacing:.035em}button span{margin-left:24px}.secondary{background:transparent;color:#e2d5b6;border-color:#8c927678}button:disabled{opacity:.45;cursor:wait}
 details{border-top:1px solid #a6a98930;padding-top:16px}summary{font:12px system-ui,sans-serif;color:#ded6bf}details p,.setting{font:12px/1.8 system-ui,sans-serif;color:#c2c9bb}.setting{display:flex;align-items:center;gap:9px}input{accent-color:#dbc38c;width:17px;height:17px}.small{font-size:11px!important}.scope{font:10px/1.7 system-ui,sans-serif;color:#afb7a8;margin-top:22px}#footer{position:fixed;bottom:22px;left:32px;right:32px;display:flex;justify-content:space-between;color:#d7d6c4;pointer-events:none;text-shadow:0 2px 4px #000}
 #crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:28px system-ui,sans-serif;color:#f6e6b7;pointer-events:none;text-shadow:0 1px 3px #000}
-#compatibility{padding:12vh 8vw;max-width:580px}#compatibility p{line-height:1.7;color:#c2c9bb}
-@media(max-width:650px){#hud{top:16px;left:20px;right:20px}#hud .eyebrow{max-width:180px;font-size:9px}#hint{font-size:9px}#panel{left:5vw;width:90vw;padding:22px;max-height:78dvh}#footer{left:20px;right:20px;font-size:8px}#compatibility h1{font-size:45px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 ~~~
 
@@ -369,12 +355,7 @@ function showPreference() {
 }
 showPreference();
 
-if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches) {
-  document.body.style.overflow = 'auto';
-  panel.hidden = true;
-  document.querySelector<HTMLElement>('#compatibility')!.hidden = false;
-  document.querySelector<HTMLElement>('#hud')!.hidden = true;
-} else {
+{
   let yard: Yard | undefined;
   let view: ReturnType<typeof createYardView> | undefined;
   let running = false;
@@ -493,7 +474,7 @@ if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)'
 ~~~
 
 - [ ] Run `rtk npm --prefix game run check`, `rtk npm --prefix game run build`, `rtk npm --prefix game run test:browser`. Fix actual observed problems through failing regression tests. Browser timing assertions must wait for simulation ticks, not infer movement from a screenshot.
-- [ ] Inspect desktop menu, gameplay and mobile screenshots visually. Fix illegible controls, clipped panels, blocked gameplay space or incorrect geometry with a documented browser reproduction, then recapture. Record viewport/browser/renderer; headless software rendering is not a hardware 60 FPS result.
+- [ ] Inspect PC menu and gameplay screenshots visually. Fix illegible controls, clipped panels, blocked gameplay space or incorrect geometry with a documented browser reproduction, then recapture. Check multiple PC window sizes. Record viewport/browser/renderer; headless software rendering is not a hardware 60 FPS result.
 - [ ] Exercise visibility/blur and held-key clearing in the browser before completion. Add a browser regression test if behavior fails. Check nested /vadstena/ production preview loads, no resource 404s, no uncaught errors, no dev diagnostics in production.
 - [ ] Update README with actual local start URL/commands, controls, implemented M1A functions and explicitly absent magic/combat/NPC/ragdoll/final assets. Record validation evidence and screenshot paths in the results document.
 - [ ] Run `rtk git diff --check`; scoped commit `feat: make the physics courtyard playable in browser`.
@@ -501,4 +482,4 @@ if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)'
 
 ## Controller self-review
 
-The final chapter is not reduced: telekinesis/ranged spells are M1B, ragdoll/severing M2, historical streets M3, chapter progression M4. The interactive M1A yard independently proves the camera/movement/fixed-loop/browser lifecycle. Gore starts enabled through the tested store but no gore graphics are claimed. Mouse capture requires an explicit click; Escape, blur, hidden document and lock loss clear input and stop simulated time. Restart keeps one renderer and frees the prior world. Touch compatibility is an honest non-playable fallback. Resource-count checks complement ownership review; they do not prove unlimited memory stability or final performance budgets.
+The final chapter is not reduced: telekinesis/ranged spells are M1B, ragdoll/severing M2, historical streets M3, chapter progression M4. The interactive M1A yard independently proves the camera/movement/fixed-loop/browser lifecycle. Gore starts enabled through the tested store but no gore graphics are claimed. Mouse capture requires an explicit click; Escape, blur, hidden document and lock loss clear input and stop simulated time. Restart keeps one renderer and frees the prior world. The user explicitly deferred mobile development on 2026-09-05; the old mobile branch, screen and acceptance test have been removed from this plan. PC window resizing remains required. A separate Windows portable .exe packaging plan follows the PC web build. Resource-count checks complement ownership review; they do not prove unlimited memory stability or final performance budgets.

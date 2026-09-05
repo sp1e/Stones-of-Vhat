@@ -94,7 +94,7 @@ Det allra första interna speltestet är mindre: en gård där gående, trappor,
 
 Föreslagen goremetod är förberedda anatomiska snittzoner och segment, med slutna snittytor och lokala effekter. Det ger faktisk fysisk avskiljning men inte godtycklig meshskärning var som helst på kroppen. Ragdoll och skadeutfall består när gore är av; blod och grafiska skadeformer ersätts med icke-grafisk presentation. Specen anger även omedelbar rensning vid avstängning och skydd mot att gamla effekter återkommer.
 
-Utanför första kapitlet: multiplayer, konton, en hel öppen stad med alla interiörer, full byggnadsdestruktion, vätskesimulering, avancerad crafting och mobil FPS-styrning. Mobilbesökare ska få en fungerande presentations-/kompatibilitetsvy, inte en trasig spelstart. Touchstyrning blir ett separat beslut.
+Utanför första kapitlet: multiplayer, konton, en hel öppen stad med alla interiörer, full byggnadsdestruktion, vätskesimulering och avancerad crafting. Simon ändrade plattformsprioriteringen 2026-09-05: fokusera på PC och skjut upp all särskild mobilutveckling, även presentations-/kompatibilitetsvyn. Utöver PC-webbversionen ska en körbar Windows-version i `.exe` tas fram; första paketeringsmålet är en portabel lokal version. Offentlig distribution och signering hanteras separat.
 
 ## Fysiken är en central del av spelet
 
