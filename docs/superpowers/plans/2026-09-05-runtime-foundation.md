@@ -20,9 +20,9 @@ Execution choice is already subagent-driven from the user's request. Use one imp
 
 ### Workspace gate
 
-- [ ] Resolve the user's worktree preference under using-git-worktrees. Current Game1 is a normal checkout on `codex/vadstena-chapter-design`; no worktree has been created.
-- [ ] Before execution, recheck `rtk git status --short` and `rtk git branch --show-current` in the selected workspace. Preserve existing changes.
-- [ ] Read RTK, TDD, subagent execution/review templates and applicable local instructions. Prefix every shell invocation with `rtk`.
+- [x] User approved a separate worktree. Created `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation` on `codex/vadstena-runtime-foundation`, based on `633e06d`. The global directory preserves the original checkout's user-owned untracked configuration without adding ignore rules to it.
+- [x] Verified a clean linked worktree and the expected named branch. Baseline has no runtime, package or tests; no baseline tests were available to run.
+- [x] Read RTK, TDD, subagent execution/review templates and applicable local instructions. Every shell invocation must be prefixed with `rtk`.
 
 All paths below are relative to the selected Game1 checkout. All file edits use apply_patch. All commits stage only the exact files listed. Do not modify the user's root `.github/` or `.gitignore`. Do not push or change sp1e.se.
 
@@ -507,4 +507,4 @@ Placeholder review: all four code tasks contain exact source/test content and co
 
 Interface review: tests use the exact exports `decodePreferences`, `encodePreferences`, `createFixedStepper` and `createActionBuffer`; `advance` calls `onStep(dt, tick)`; snapshots contain `held` and `pressed`. Imports use explicit `.ts` extensions supported by the verified Node runtime.
 
-Execution has not started. This document contains planned code, not installed dependencies or a passing runtime.
+Execution started after explicit worktree consent. The checklists and companion results document distinguish planned code from verified implementation.

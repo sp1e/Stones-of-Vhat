@@ -68,7 +68,7 @@ Rapier 0.20.0:s `castShape` har `targetDistance` före `maxToi`; äldre kodexemp
 - [x] Skriven designspec godkänd av Simon; förberedda snittzoner ingår.
 - [x] Leveranskarta och avgränsad M0-plan skrivna.
 - [x] Befintlig arbetskopia undersökt: vanlig checkout på `codex/vadstena-chapter-design`, inte länkad worktree.
-- [ ] Arbetskopia vald. `using-git-worktrees` kräver ett första samtycke innan ny worktree skapas; ingen tidigare preferens finns i uppgiften.
+- [x] Simon godkände separat worktree. Arbetskopia: `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation`, gren `codex/vadstena-runtime-foundation`. Global placering bevarar originalets användarägda konfigurationsfiler orörda.
 - [ ] M0 implementerad och granskad.
 - [ ] M1:s exekverbara fysik-/browserplan skriven mot M0:s verifierade gränssnitt och genomförd.
 - [ ] M2–M5 planerade och genomförda i beroendeordning.
