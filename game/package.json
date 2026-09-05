@@ -11,7 +11,14 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test"
   },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.20.0",
+    "three": "0.185.1"
+  },
   "devDependencies": {
-    "typescript": "7.0.2"
+    "@types/three": "0.185.4",
+    "playwright": "1.63.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
   }
 }
