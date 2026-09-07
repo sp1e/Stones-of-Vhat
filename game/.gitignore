@@ -2,3 +2,5 @@
 /dist/
 /.cache/
 /.playtest/
+/desktop/renderer/
+/release/

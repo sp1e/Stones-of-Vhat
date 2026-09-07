@@ -13,6 +13,8 @@ test('browser toolchain uses the exact approved dependencies', () => {
   });
   assert.deepEqual(pkg.devDependencies, {
     '@types/three': '0.185.4',
+    electron: '44.2.0',
+    'electron-builder': '26.15.3',
     playwright: '1.63.0',
     typescript: '7.0.2',
     vite: '8.2.2',
@@ -28,6 +30,11 @@ test('browser toolchain uses the exact approved dependencies', () => {
     build: 'tsc --noEmit && vite build',
     preview: 'vite preview --host 127.0.0.1',
     'test:browser': 'node --test browser/*.spec.mjs',
+    'build:desktop': 'tsc --noEmit && node scripts/build-desktop.mjs',
+    'electron:runtime': 'node node_modules/electron/install.js',
+    'pack:desktop': 'npm run electron:runtime && npm run build:desktop && electron-builder --config electron-builder.yml --win --x64 --dir --publish never',
+    'dist:desktop': 'npm run electron:runtime && npm run build:desktop && electron-builder --config electron-builder.yml --win portable --x64 --publish never',
+    'test:desktop': 'node --test desktop-tests/*.spec.mjs',
   });
 });
 

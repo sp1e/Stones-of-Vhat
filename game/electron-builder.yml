@@ -1,0 +1,25 @@
+appId: se.sp1e.vadstena
+productName: Vadstena
+electronVersion: 44.2.0
+electronDist: node_modules/electron/dist
+directories:
+  app: desktop
+  output: release
+files:
+  - main.mjs
+  - policy.mjs
+  - package.json
+  - renderer/**/*
+  - '!node_modules/**/*'
+asar: true
+npmRebuild: false
+win:
+  executableName: Vadstena
+  target:
+    - target: portable
+      arch:
+        - x64
+  requestedExecutionLevel: asInvoker
+  signExecutable: false
+portable:
+  artifactName: Vadstena-${version}-win-${arch}-portable.${ext}

@@ -1,0 +1,11 @@
+{
+  "name": "vadstena-desktop",
+  "productName": "Vadstena",
+  "version": "0.1.0",
+  "description": "Vadstena: Den åttonde klangen — PC physics courtyard",
+  "author": "Game1",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "main.mjs"
+}

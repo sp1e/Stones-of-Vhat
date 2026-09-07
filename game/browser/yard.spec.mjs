@@ -213,6 +213,29 @@ test('production preview serves the nested base path and strips development diag
   }
 });
 
+test('development watcher excludes generated desktop, release and test-profile directories', { timeout: 30_000 }, async () => {
+  const configured = await createServer({
+    configFile: join(root, 'vite.config.ts'), root, logLevel: 'error',
+    server: { host: '127.0.0.1', port: 4174, strictPort: true },
+  });
+  try {
+    await configured.listen();
+    // The watcher may already have emitted ready while Vite was initializing.
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      if (Object.keys(configured.watcher.getWatched()).some(path => path.replaceAll('\\', '/').endsWith('/src/render'))) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    const watched = Object.keys(configured.watcher.getWatched()).map(path => path.replaceAll('\\', '/'));
+    assert.ok(watched.some(path => path.endsWith('/src/render')), 'production source must remain watched');
+    const normalizedRoot = root.replaceAll('\\', '/');
+    for (const generated of ['desktop/renderer', 'release', '.playtest']) {
+      assert.equal(watched.some(path => path === `${normalizedRoot}/${generated}` || path.startsWith(`${normalizedRoot}/${generated}/`)), false, `${generated} must not be watched`);
+    }
+  } finally {
+    await configured.close();
+  }
+});
+
 test('a real BFCache restoration reloads the disposed page into a fresh paused game', { timeout: 60_000 }, async () => {
   await build({ configFile: join(root, 'vite.config.ts'), root, logLevel: 'error' });
   const production = await preview({
