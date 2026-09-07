@@ -1,6 +1,6 @@
 # Game1 team state
 
-Updated 2026-09-05. Coordinator owns this file.
+Updated 2026-09-07. Coordinator owns this file.
 
 ## Outcome and scope
 
@@ -19,7 +19,7 @@ Branch: codex/vadstena-runtime-foundation
 | Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Complete 6389f15, 31 tests pass; physics_quality independently confirms its important finding resolved and approves integration |
 | Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Complete 6d92691 + BFCache fix 7ca88a0; 31 native, 5 browser tests and production build pass |
 | Integrated browser QA and visual checks | Coordinator, browser_spec (gpt-5.6-terra/high), browser_quality (gpt-6-astra/high) | Spec PASS; quality P2 resolved and independently rechecked with real BFCache; no remaining important findings |
-| Windows portable .exe packaging | windows_portable (gpt-6-astra/high); prior read-only research complete | Implementing secure shell, exact dependencies, build and actual executable tests; sole production writer, owns desktop files/package/README/results |
+| Windows portable .exe packaging | windows_portable (gpt-6-astra/high); prior read-only research complete | Shell, build config and tests committed 17309ce on 2026-09-07. Three source defects fixed and verified in code. Unpacked exe built but never launched; portable artifact never built. Launch acceptance is the open item |
 
 ## Team workflow decisions
 
@@ -56,3 +56,29 @@ Retain the two ordered review gates explicitly required by the earlier selected 
 - Controlled resumption authorized by the user's changed state: owner fixes first-run profile order, ASAR dependency exclusion, reproducible local Electron bootstrap and Vite generated-path watcher exclusion through RED/GREEN checks, then builds unpacked once. Coordinator must verify generated .text against the known base before launch. Any renewed Defender detection/quarantine stops execution again. Results retain all history and uncertainty.
 - Packaging research corrections: builder 26.15.3 uses win.signExecutable=false (not win.sign=false), retaining executable resources. Validate app URLs by protocol/host/port/credentials, never WHATWG origin equality. Native pointer lock requires a visible focused Windows test; hidden startup cannot establish that evidence.
 - Next: integrate and test the PC browser view, inspect actual screenshots and review; then build and verify the requested portable Windows .exe using the same game code.
+
+## 2026-09-07 handover: Codex paused, Claude Code continuing
+
+The user ran out of Codex tokens on 2026-09-06 and asked Claude Code to take over until they are restored on 2026-09-12. Codex is expected to resume after that, so this file and the results documents remain the handover contract. Anything Claude Code changes is committed on the same branch, with the same evidence standard.
+
+Independently re-measured on 2026-09-07 before any change, from `game/`:
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0, strict TypeScript |
+| `npm test` | **32/32 pass**, 0 fail |
+| `npm run test:browser` | **6/6 pass**, 0 fail |
+
+These counts correct a stale claim repeated across the earlier documents. Every prior status line saying "31 native tests" or "five browser tests" predates `tests/desktopPolicy.test.mjs` and the generated-directory watcher regression in `browser/yard.spec.mjs`. The historical entries above are left unedited as a record of what was true when written.
+
+The whole desktop increment was uncommitted until 2026-09-07: `desktop/`, `desktop-tests/`, `scripts/`, `electron-builder.yml`, `tests/desktopPolicy.test.mjs` and this results document were untracked, and seven tracked files were modified. It is now committed as 17309ce. Generated artefacts stay ignored; `check-ignore` confirms `release/`, `desktop/renderer/` and `.playtest/` are excluded, so no Electron runtime entered history.
+
+The launch gate recorded above — "Coordinator must verify generated .text against the known base before launch" — is now closed, and closed more broadly than the gate asked. All 15 PE sections of `release/win-unpacked/Vadstena.exe` were compared against `node_modules/electron/dist/electron.exe`, not `.text` alone. Fourteen are byte-identical: `.text` (192,561,152 bytes, `5f886a6a…5d024d3`), `.rdata` (45,329,408 bytes, `41714b23…d57d8bb8`), `.pdata`, `.data`, `.reloc`, `.rodata`, `.tls`, `LZMADEC`, `malloc_h`, `.eh_fram`, `.fptable`, `CPADinfo`, `_RDATA` and `prot`. Exactly one differs: `.rsrc`, 99,840 against 99,328 bytes, +512.
+
+Whole-file SHA-256 is `386e91ab57d7162c5809a2e681ce1185891083462d3d5ed506ab5e03c27c6d2d` at 246,202,368 bytes for the generated executable, against `07b043bf9b0a0ac14a82fac0b612b7b7ed13cde727d706d74e41a45278ab51f1` at 246,201,856 bytes for the base. The whole-file delta of +512 bytes is therefore fully accounted for by `.rsrc` — the resource section electron-builder rewrites for icon, product name and version metadata. The `.text` digest also reproduces the 2026-09-05 base measurement exactly, from an independent parse. Executable code is byte-identical to official Electron 44.2.0 and the packaging tool injected none of its own. **This does not establish that the Defender detection was false**, and no exclusion, quarantine restoration or security-setting change has been made.
+
+The executable has still **not been launched**. That decision belongs to the user, not to any agent, because of the quarantine history. Remaining unverified: window startup, native pointer lock, GPU vendor/renderer, frame rate, first-run profile creation and persistence across restarts, and whether Defender reacts to the rebuilt file.
+
+Publishing blocker verified on 2026-09-07 against the current website configuration, not the 2026-09-05 snapshot: the site's `_headers` applies `script-src 'self' 'unsafe-inline' https://unpkg.com` on the `/*` rule, with no `'wasm-unsafe-eval'`. Rapier is WebAssembly and will fail to instantiate under that policy. A path-scoped `/vadstena/*` rule cannot fix it: two Content-Security-Policy headers are enforced as their intersection, so the restrictive one still applies. The fix has to add `'wasm-unsafe-eval'` to the global `script-src`. The Electron shell is unaffected because it serves its own CSP, which already includes `'wasm-unsafe-eval'`.
+
+No remote is configured for this repository: `git remote -v` returns nothing. Every commit on `codex/vadstena-runtime-foundation`, and the whole `docs/` and `game/` tree, exists only on this machine. There is no off-machine copy of this project. Raising that with the user is a standing item, not a resolved one.
