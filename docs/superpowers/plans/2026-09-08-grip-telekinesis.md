@@ -1,6 +1,6 @@
 # Grip Telekinesis Implementation Plan
 
-**Paused draft, 2026-09-08 15:24:** Only Tasks 1–3 have been written; renderer/main/HTML/browser sections are incomplete. No Grip tests or production code have been created/run. Core physics Tasks 1–2 received internal review approval, but user pause supersedes execution. Before continuing, read repository-root `.continue-here.md` for required actual-held input feedback and missing safety scenarios. Do not execute this draft as a complete playable implementation plan.
+**Status:** Resumed; core Tasks 1–2 implemented and 51 native tests pass. Input/browser/render production awaits final core quality recheck.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. The coordinator owns independent spec and quality review; the assigned implementation worker executes inline without further delegation. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -14,7 +14,9 @@
 
 ## Ownership and verification contract
 
-Worktree: `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation`, branch already selected by coordinator. Base at review: `607fc0a`. Run commands from `game/` unless specified. Every shell command starts `rtk`. Edit with `apply_patch`. Do not touch `docs/research/deep-research`, desktop source/builds/packages, Windows acceptance notes, or coordinator `team-state.md`.
+Worktree: `C:/Users/simon.pettersson/.config/superpowers/worktrees/Game1/runtime-foundation`, branch `codex/vadstena-runtime-foundation`. Resumed base: `b4c6a06`. Run commands from `game/` unless specified. Every shell command starts `rtk`. Edit with `apply_patch`. Do not touch `docs/research/deep-research`, desktop source/builds/packages, Windows acceptance notes, or coordinator `team-state.md`.
+
+Research integration: the coordinator read all ten final research documents, and the implementer read `docs/research/deep-research/2026-09-08/technical-dossier.md`. Its sections 1–2 inform fixed-step render-grouping tests, target slew, inertia-aware torque, and conservative initial budgets: 350 N, 22 m/s², 25 N·m, 40 N·s throw budget, desired throw increment 8 m/s. These are unvalidated tuning hypotheses. The retained prototype envelope remains 35 kg/6 m; mass-proportional PD assistance intentionally gives similar free response until a budget saturates, while heavy throws become slower. No subjective weight-feel claim follows from those numeric tests. COM grip is sufficient for these loose props; joined chains, pose-transfer, moving volumetric contact and skinned-arm/export spikes precede final NPC production. This slice does not complete research P03 or all of M1B; shared Focus, spells, NPCs, gore presentation and historical assets remain separate work.
 
 Baseline is 32 passing native tests plus six existing browser regressions. Observe actual RED before production edits. Record commands and failing assertions, then GREEN counts, in the results document. The code below is the initial implementation, not a claim of validated tuning; change a parameter only against a failing behavioral check and document the result. Approval of this plan is internal coordinator review, not another user approval gate.
 
@@ -104,7 +106,7 @@ test('Grip lifts and holds with finite bounded speed, then release restores fall
       assert.ok(Object.values(body.position).every(Number.isFinite));
       assert.ok(Math.hypot(...Object.values(body.velocity)) < 12);
       assert.equal(yard.snapshot().grip.heldId, 'prop');
-      assert.ok(yard.snapshot().grip.impulse <= 700 / 60 + 1e-6);
+      assert.ok(yard.snapshot().grip.impulse <= 350 / 60 + 1e-6);
     }
     const lifted = pose(yard).position.y;
     assert.ok(lifted > before + 0.8, `lift ${before} -> ${lifted}`);
@@ -129,7 +131,7 @@ test('Grip rotation applies finite torque and a throw command cannot throw twice
     const speed = pose(yard).velocity.z;
     yard.step(idle, command({ throwPressed: true }));
     assert.ok(Math.abs(pose(yard).velocity.z - speed) < 0.5);
-    assert.ok(speed < -5);
+    assert.ok(speed < -4.5);
   });
 });
 
@@ -179,11 +181,13 @@ export type GripSnapshot = {
   status: 'idle' | 'ready' | 'holding' | 'blocked' | 'released' | 'thrown' | 'invalid';
   candidateId: string | null; heldId: string | null; mass: number | null;
   distance: number; target: Vec3 | null; impulse: number; torqueImpulse: number;
-  joints: number;
+  joints: number; contacts: number;
+  reason: 'none' | 'input' | 'range' | 'eye-overlap' | 'speed' | 'sight' | 'error' | 'released';
 };
 export const GRIP_LIMITS = Object.freeze({ range: 6, breakRange: 7.5, mass: 35,
-  minDistance: 1.8, maxDistance: 5.5, maxError: 3, force: 700,
-  acceleration: 30, torque: 100, speed: 12, angularSpeed: 8, throwSpeed: 8, throwImpulse: 200 });
+  minDistance: 1.8, maxDistance: 5.5, maxError: 3, force: 350,
+  acceleration: 22, torque: 25, speed: 12, angularSpeed: 8, throwSpeed: 8, throwImpulse: 40,
+  targetSpeed: 6, targetAcceleration: 40 });
 const length = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
 const scale = (v: Vec3, n: number): Vec3 => ({ x: v.x * n, y: v.y * n, z: v.z * n });
 const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -212,20 +216,21 @@ function pd(error: Vec3, velocity: Vec3, kp: number, kd: number): Vec3 {
 }
 
 export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPIER.RigidBody>, player: RAPIER.RigidBody) {
-  let held: { id: string; body: RAPIER.RigidBody; rotation: Rotation; radius: number } | null = null;
+  let held: { id: string; body: RAPIER.RigidBody; rotation: Rotation; radius: number; target: Vec3; targetVelocity: Vec3 } | null = null;
   let state: GripSnapshot = { status: 'idle', candidateId: null, heldId: null, mass: null,
-    distance: 3, target: null, impulse: 0, torqueImpulse: 0, joints: 0 };
+    distance: 3, target: null, impulse: 0, torqueImpulse: 0, joints: 0, contacts: 0, reason: 'none' };
   let acquireDown = false;
   let throwDown = false;
-  const release = (status: GripSnapshot['status'] = 'released') => {
+  const release = (status: GripSnapshot['status'] = 'released', reason: GripSnapshot['reason'] = 'released', keepHover = false) => {
     held = null;
-    state = { ...state, status, heldId: null, mass: null, target: null, impulse: 0, torqueImpulse: 0 };
+    state = { ...state, status, reason, candidateId: keepHover ? state.candidateId : null,
+      heldId: null, mass: null, target: null, impulse: 0, torqueImpulse: 0, contacts: 0 };
   };
   function step(eye: Vec3, command?: GripCommand): void {
     const valid = command && [command.yaw, command.pitch, command.distanceDelta, command.rotateYaw, command.rotatePitch, eye.x, eye.y, eye.z].every(Number.isFinite)
       && [command.wanted, command.acquire, command.throwPressed].every(value => typeof value === 'boolean');
     if (!valid) {
-      release(command ? 'invalid' : 'idle'); acquireDown = false; throwDown = false; return;
+      release(command ? 'invalid' : 'idle', command ? 'input' : 'released'); acquireDown = false; throwDown = false; return;
     }
     const acquireEdge = command.acquire && !acquireDown;
     const throwEdge = command.throwPressed && !throwDown;
@@ -238,7 +243,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     const candidate = pick?.collider.parent();
     const entry = candidate && [...bodies].find(([, body]) => body.handle === candidate.handle);
     if (entry && candidate?.isDynamic() && candidate.mass() > 0 && candidate.mass() <= GRIP_LIMITS.mass) state.candidateId = entry[0];
-    if (!command.wanted) release('idle');
+    if (!command.wanted) release('idle', 'released', true);
     if (!held && command.wanted && acquireEdge && entry && state.candidateId) {
       const body = entry[1];
       const collider = body.collider(0);
@@ -250,30 +255,48 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
       else if (bounds instanceof RAPIER.Ball) radius = bounds.radius;
       else if (bounds instanceof RAPIER.Cylinder) radius = Math.hypot(bounds.radius, bounds.halfHeight);
       else { release('blocked'); return; }
-      held = { id: entry[0], body, rotation: { ...body.rotation() }, radius };
+      held = { id: entry[0], body, rotation: { ...body.rotation() }, radius,
+        target: { ...body.translation() }, targetVelocity: { x: 0, y: 0, z: 0 } };
       state.distance = clamp(length(sub(body.translation(), eye)), Math.max(GRIP_LIMITS.minDistance, radius + 0.4), GRIP_LIMITS.maxDistance);
     }
-    if (!held) { if (state.status === 'idle' && state.candidateId) state.status = 'ready'; return; }
+    if (!held) {
+      if (state.status === 'idle' || state.status === 'ready') state.status = state.candidateId ? 'ready' : 'idle';
+      return;
+    }
     const { body, radius } = held;
     const position = body.translation();
     const mass = body.mass();
     const fromEye = sub(position, eye);
     const eyeDistance = length(fromEye);
-    if (eyeDistance > GRIP_LIMITS.breakRange || eyeDistance < radius + 0.35 ||
-        ![...Object.values(position), ...Object.values(body.linvel()), ...Object.values(body.angvel())].every(Number.isFinite) ||
-        length(body.linvel()) > GRIP_LIMITS.speed || length(body.angvel()) > GRIP_LIMITS.angularSpeed) { release(); return; }
+    if (eyeDistance > GRIP_LIMITS.breakRange) { release('released', 'range'); return; }
+    if (eyeDistance < radius + 0.35) { release('released', 'eye-overlap'); return; }
+    if (![...Object.values(position), ...Object.values(body.linvel()), ...Object.values(body.angvel())].every(Number.isFinite) ||
+        length(body.linvel()) > GRIP_LIMITS.speed || length(body.angvel()) > GRIP_LIMITS.angularSpeed) { release('released', 'speed'); return; }
     const sight = world.castRay(new RAPIER.Ray(eye, scale(fromEye, 1 / eyeDistance)), eyeDistance, true,
       RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, body.collider(0), player);
-    if (sight) { release('blocked'); return; }
+    if (sight) { release('blocked', 'sight'); return; }
     state.distance = clamp(state.distance + clamp(command.distanceDelta, -0.5, 0.5), Math.max(GRIP_LIMITS.minDistance, radius + 0.4), GRIP_LIMITS.maxDistance);
-    let target = add(eye, scale(direction, state.distance));
+    const requestedTarget = add(eye, scale(direction, state.distance));
+    // Look changes are checked at the current body's range. Wheel expansion
+    // goes through the target slew instead of turning into a large aim jump.
+    const aimAtCurrentRange = add(eye, scale(direction, Math.min(state.distance, eyeDistance)));
+    if (length(sub(aimAtCurrentRange, position)) > GRIP_LIMITS.maxError ||
+        length(sub(held.target, position)) > GRIP_LIMITS.maxError) { release('released', 'error'); return; }
+    const targetError = sub(requestedTarget, held.target);
+    const desiredTargetVelocity = cap(scale(targetError, 1 / dt), GRIP_LIMITS.targetSpeed);
+    held.targetVelocity = add(held.targetVelocity, cap(sub(desiredTargetVelocity, held.targetVelocity), GRIP_LIMITS.targetAcceleration * dt));
+    const targetAdvance = cap(scale(held.targetVelocity, dt), length(targetError));
+    let target = add(held.target, targetAdvance);
     const displacement = sub(target, position);
-    if (length(displacement) > GRIP_LIMITS.maxError) { release(); return; }
     // Real collider shape and current rotation, translational sweep only.
     // stopAtPenetration=false permits moving upward from resting floor contact.
     const sweep = world.castShape(position, body.rotation(), displacement, body.collider(0).shape,
       0.015, 1, false, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, body.collider(0), player);
-    if (sweep) target = add(position, scale(displacement, Math.max(0, sweep.time_of_impact - 0.02)));
+    if (sweep) {
+      target = add(position, scale(displacement, Math.max(0, sweep.time_of_impact - 0.02)));
+      held.targetVelocity = { x: 0, y: 0, z: 0 };
+    }
+    held.target = { ...target };
     if (throwEdge) {
       body.applyImpulse(scale(direction, Math.min(mass * GRIP_LIMITS.throwSpeed, GRIP_LIMITS.throwImpulse)), true);
       release('thrown'); return;
@@ -294,12 +317,24 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     }, dt), GRIP_LIMITS.torque * dt);
     body.applyImpulse(impulse, true);
     body.applyTorqueImpulse(angularImpulse, true);
-    state = { ...state, status: 'holding', heldId: held.id, mass, target: { ...target }, impulse: length(impulse), torqueImpulse: length(angularImpulse) };
+    state = { ...state, status: 'holding', reason: 'none', heldId: held.id, mass, target: { ...target }, impulse: length(impulse), torqueImpulse: length(angularImpulse) };
   }
   return {
     step,
     release(): void { release(); acquireDown = false; throwDown = false; },
-    snapshot(): GripSnapshot { return { ...state, target: state.target ? { ...state.target } : null, joints: world.impulseJoints.len() + world.multibodyJoints.len() }; },
+    snapshot(): GripSnapshot {
+      let contacts = 0;
+      if (held) {
+        const collider = held.body.collider(0);
+        world.contactPairsWith(collider, other => world.contactPair(collider, other, manifold => {
+          for (let index = 0; index < manifold.numSolverContacts(); index++) {
+            if (manifold.solverContactDist(index) <= 0.002) contacts++;
+          }
+        }));
+      }
+      return { ...state, target: state.target ? { ...state.target } : null, contacts,
+        joints: world.impulseJoints.len() + world.multibodyJoints.len() };
+    },
   };
 }
 ```
@@ -316,6 +351,7 @@ Add these fields inside `BodyPose` and `YardSnapshot` respectively:
 ```ts
   velocity: Vec3;
   angularVelocity: Vec3;
+  sleeping: boolean;
 ```
 
 ```ts
@@ -345,7 +381,7 @@ Replace the `BodyPose` return inside `snapshot()` with:
 ```ts
             return { id, position: { ...body.translation() }, rotation: { ...body.rotation() },
               previousPosition: { ...old.position }, previousRotation: { ...old.rotation },
-              velocity: { ...body.linvel() }, angularVelocity: { ...body.angvel() } };
+              velocity: { ...body.linvel() }, angularVelocity: { ...body.angvel() }, sleeping: body.isSleeping() };
 ```
 
 Add `grip: grip.snapshot(),` next to the existing snapshot `player` field. Add `grip.release();` before `destroyed = true;` inside `destroy()`. Existing `counts()` shape remains unchanged to preserve M1A lifecycle assertions.
@@ -364,7 +400,7 @@ test('Grip pulls the real plank off the floor and rotates without unstable angul
       yard.step(idle, command({ rotateYaw: tick > 90 ? 0.02 : 0 }));
       assert.equal(yard.snapshot().grip.heldId, 'prop');
       assert.ok(Math.hypot(...Object.values(pose(yard).angularVelocity)) < 8);
-      assert.ok(yard.snapshot().grip.torqueImpulse <= 100 / 60 + 1e-6);
+      assert.ok(yard.snapshot().grip.torqueImpulse <= 25 / 60 + 1e-6);
     }
     assert.ok(pose(yard).position.y > 1);
   });
@@ -403,6 +439,7 @@ test('held body cannot be pulled through a wall and sight loss releases before f
       if (yard.snapshot().grip.heldId === null) { released = true; break; }
     }
     assert.equal(released, true);
+    assert.equal(yard.snapshot().grip.reason, 'sight');
     assert.equal(yard.snapshot().grip.impulse, 0);
   });
 });
@@ -422,9 +459,187 @@ test('release has no latent throw or automatic reacquisition and restarts begin 
 });
 ```
 
-- [ ] **Step 2: Run `rtk node --test tests/grip.test.mjs`.** If these already pass, retain them as acceptance regressions; they are not evidence of a new RED. If they fail, record the failing behavior before changing the implementation. Real floor cast behavior and anisotropic inertia come from independently checked Rapier 0.20.0 APIs; do not switch back to sphere sweeps or scalar mass torque.
+- [ ] **Step 2: Append the research and review safety fixtures below before running the new tests.**
 
-- [ ] **Step 3: Run `rtk npm run check`.** Expect 42 native tests when Task 1 and 2 are complete. Record exact observed counts if test subdivision changes. The endpoint shape sweep does not prove continuous rotational swept clearance; bounded torque and Rapier contacts enforce physical rotation. Center-to-eye visibility is deliberately conservative, including when only one end of the plank is visible.
+```js
+test('a sleeping settled barrel lifts with its real cylinder collider', async () => {
+  await fixture([{ id: 'prop', shape: { kind: 'cylinder', radius: 0.36, height: 0.9 }, position: { x: 0, y: 0.46, z: 4 }, mass: 18, color: '#777777' }], yard => {
+    run(yard, 300);
+    assert.equal(pose(yard).sleeping, true, 'barrel fixture must actually be sleeping');
+    acquire(yard);
+    run(yard, 180, command());
+    assert.equal(yard.snapshot().grip.heldId, 'prop');
+    assert.ok(pose(yard).position.y > 1.1);
+  });
+});
+test('0.5, 2, 10 and 15 kg props obey force budgets and heavier throws saturate', async () => {
+  const increments = [];
+  for (const mass of [0.5, 2, 10, 15]) await fixture([prop('prop', mass)], yard => {
+    acquire(yard);
+    run(yard, 180, command());
+    assert.equal(yard.snapshot().grip.heldId, 'prop');
+    assert.ok(yard.snapshot().grip.impulse <= 350 / 60 + 1e-6);
+    const before = pose(yard).velocity.z;
+    yard.step(idle, command({ throwPressed: true }));
+    const increment = before - pose(yard).velocity.z;
+    increments.push(increment);
+    assert.ok(Math.abs(increment - Math.min(8, 40 / mass)) < 0.05, `mass=${mass}, increment=${increment}`);
+  });
+  assert.ok(increments[2] < increments[1]);
+  assert.ok(increments[3] < increments[2]);
+});
+test('a held plank actually contacts wall and corner during torque rotation without tunnelling', async (t) => {
+  const RAPIER = (await import('@dimforge/rapier3d-compat')).default;
+  const { createGrip } = await import('../src/physics/grip.ts');
+  await RAPIER.init();
+  for (const corner of [false, true]) {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    try {
+      world.timestep = 1 / 60;
+      world.createCollider(RAPIER.ColliderDesc.cuboid(20, 0.5, 20).setTranslation(0, -0.5, 0).setFriction(0.7));
+      const side = world.createCollider(RAPIER.ColliderDesc.cuboid(0.15, 1.5, 4).setTranslation(1.55, 1.5, 2));
+      const end = corner ? world.createCollider(RAPIER.ColliderDesc.cuboid(2.5, 1.5, 0.15).setTranslation(0, 1.5, 2.6)) : null;
+      const player = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 0.86, 8));
+      world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.3), player);
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true).setTranslation(0, 0.08, 4));
+      const plank = world.createCollider(RAPIER.ColliderDesc.cuboid(1.2, 0.07, 0.175).setMass(8).setFriction(0.7), body);
+      for (let tick = 0; tick < 60; tick++) world.step();
+      const grip = createGrip(world, new Map([['prop', body]]), player);
+      const eye = { x: 0, y: 1.61, z: 8 };
+      const step = input => { grip.step(eye, input); world.step(); };
+      step(command({ acquire: true, pitch: Math.atan2(body.translation().y - eye.y, eye.z - body.translation().z) }));
+      assert.equal(grip.snapshot().heldId, 'prop');
+      for (let tick = 0; tick < 180; tick++) step(command());
+      let sideContacts = 0, endContacts = 0, maximumPenetration = 0;
+      function contactsWith(obstacle) {
+        let count = 0;
+        if (obstacle) world.contactPair(plank, obstacle, manifold => {
+          for (let index = 0; index < manifold.numSolverContacts(); index++) {
+            const distance = manifold.solverContactDist(index);
+            if (distance <= 0.002) count++;
+            maximumPenetration = Math.max(maximumPenetration, -distance);
+          }
+        });
+        return Number(count > 0);
+      }
+      for (let tick = 0; tick < 240; tick++) {
+        step(command({ yaw: -Math.min(0.18, tick * 0.003), rotateYaw: 0.012 }));
+        assert.equal(grip.snapshot().heldId, 'prop', `must exercise contacts while held, tick=${tick}`);
+        sideContacts += contactsWith(side); endContacts += contactsWith(end);
+        assert.ok(Math.hypot(...Object.values(body.linvel())) < 12);
+      }
+      assert.ok(sideContacts > 5, `actual side-wall contact ticks: ${sideContacts}`);
+      if (corner) assert.ok(endContacts > 5, `actual end-wall contact ticks: ${endContacts}`);
+      assert.ok(maximumPenetration < 0.025, `maximum solver contact penetration ${maximumPenetration}`);
+      t.diagnostic(JSON.stringify({ corner, sideContacts, endContacts, maximumPenetration }));
+    } finally { world.free(); }
+  }
+});
+test('range and sight guards release before applying an impulse', async () => {
+  const RAPIER = (await import('@dimforge/rapier3d-compat')).default;
+  const { createGrip } = await import('../src/physics/grip.ts');
+  await RAPIER.init();
+  for (const blocked of [false, true]) {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    try {
+      const player = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 1.5, 8));
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 1.5, 4));
+      world.createCollider(RAPIER.ColliderDesc.cuboid(0.3, 0.3, 0.3).setMass(2), body);
+      if (blocked) world.createCollider(RAPIER.ColliderDesc.cuboid(0.15, 2, 1).setTranslation(1.5, 1.5, 6));
+      world.step();
+      const grip = createGrip(world, new Map([['prop', body]]), player);
+      grip.step({ x: 0, y: 1.5, z: 8 }, command({ acquire: true }));
+      assert.equal(grip.snapshot().heldId, 'prop');
+      const velocity = { ...body.linvel() };
+      grip.step(blocked ? { x: 3, y: 1.5, z: 8 } : { x: 0, y: 1.5, z: 12 }, command());
+      assert.equal(grip.snapshot().heldId, null);
+      assert.equal(grip.snapshot().reason, blocked ? 'sight' : 'range');
+      assert.equal(grip.snapshot().impulse, 0);
+      assert.equal(grip.snapshot().torqueImpulse, 0);
+      assert.deepEqual({ ...body.linvel() }, velocity);
+    } finally { world.free(); }
+  }
+});
+test('identical fixed-step commands produce identical Grip outcomes at 30, 60 and 144 Hz render grouping', async () => {
+  const { createFixedStepper } = await import('../src/runtime/fixedStep.ts');
+  const outcomes = [];
+  for (const hz of [30, 60, 144]) await fixture([prop()], yard => {
+    const advance = createFixedStepper();
+    const initialAim = aim(yard);
+    let ticks = 0;
+    for (let frame = 0; ticks < 240 && frame < 2000; frame++) advance(1 / hz, true, () => {
+      if (ticks >= 240) return;
+      const input = ticks === 0 ? command({ ...initialAim, acquire: true }) : command({
+        rotateYaw: ticks >= 100 && ticks < 140 ? 0.01 : 0,
+        throwPressed: ticks === 180,
+      });
+      yard.step(idle, input); ticks++;
+      if (ticks === 1) assert.equal(yard.snapshot().grip?.heldId, 'prop');
+      if (ticks === 181) assert.equal(yard.snapshot().grip.status, 'thrown');
+    });
+    assert.equal(ticks, 240);
+    outcomes.push({ body: pose(yard), grip: yard.snapshot().grip });
+  });
+  assert.deepEqual(outcomes[1], outcomes[0]);
+  assert.deepEqual(outcomes[2], outcomes[0]);
+});
+
+test('the 35 kg envelope lifts slowly while force saturation stays bounded', async () => {
+  await fixture([prop('prop', 35)], yard => {
+    acquire(yard);
+    const start = pose(yard).position.y;
+    let saturated = 0;
+    for (let tick = 0; tick < 1200; tick++) {
+      yard.step(idle, command());
+      assert.equal(yard.snapshot().grip.heldId, 'prop');
+      assert.ok(yard.snapshot().grip.impulse <= 350 / 60 + 1e-6);
+      saturated += Number(yard.snapshot().grip.impulse > 349 / 60);
+    }
+    assert.ok(pose(yard).position.y > start + 0.8);
+    assert.ok(saturated > 30, `expected force budget saturation, got ${saturated}`);
+  });
+});
+test('the authored stone collider lifts and bounded aim reversals do not accumulate energy', async () => {
+  await fixture([{ id: 'prop', shape: { kind: 'ball', radius: 0.3 }, position: { x: 0, y: 0.31, z: 4 }, mass: 6, color: '#777777' }], yard => {
+    acquire(yard);
+    run(yard, 180, command());
+    for (let tick = 0; tick < 360; tick++) {
+      yard.step(idle, command({ yaw: tick % 12 < 6 ? 0.2 : -0.2 }));
+      assert.equal(yard.snapshot().grip.heldId, 'prop');
+      assert.ok(Math.hypot(...Object.values(pose(yard).velocity)) < 6);
+    }
+    const released = pose(yard);
+    yard.releaseGrip();
+    run(yard, 120);
+    const landed = pose(yard);
+    const kineticBound = Math.hypot(...Object.values(released.velocity)) ** 2 + 2 * 9.81 * released.position.y;
+    assert.ok(Math.hypot(...Object.values(landed.velocity)) ** 2 <= kineticBound + 0.1, 'release must not inject energy; a sphere may retain rolling momentum');
+  });
+});
+test('held prop collides with a step while lowering and walking never drags it through the player', async () => {
+  await fixture([prop(), box('step', [2, 0.6, 2], { x: 0, y: 0.3, z: 2.3 })], yard => {
+    acquire(yard); run(yard, 180, command());
+    let contacts = 0;
+    for (let tick = 0; tick < 180; tick++) {
+      yard.step(idle, command({ pitch: -0.22, distanceDelta: 0.02, rotatePitch: 0.012 }));
+      assert.equal(yard.snapshot().grip.heldId, 'prop');
+      contacts += Number(yard.snapshot().grip.contacts > 0);
+      assert.ok(pose(yard).position.y > 0.55);
+    }
+    assert.ok(contacts > 5);
+    for (let tick = 0; tick < 120; tick++) {
+      yard.step({ ...idle, forward: 1 }, command({ distanceDelta: -0.1 }));
+      const state = yard.snapshot();
+      const point = pose(yard).position;
+      assert.ok(Math.hypot(point.x - state.player.position.x, point.z - state.player.position.z) > 0.5);
+    }
+  });
+});
+```
+
+- [ ] **Step 3: Run `rtk node --test tests/grip.test.mjs`.** If these already pass, retain them as acceptance regressions; they are not evidence of a new RED. If they fail, record the failing behavior before changing the implementation. Real floor cast behavior and anisotropic inertia come from independently checked Rapier 0.20.0 APIs; do not switch back to sphere sweeps or scalar mass torque. Adjust a physically misplaced fixture only when its geometry demonstrably misses the named condition, and preserve the assertion that contact occurs while still held. Do not pass an obstruction test by letting an unrelated early release bypass contact.
+
+- [ ] **Step 4: Run `rtk npm run check`.** Expect 50 native tests when Task 1 and 2 are complete. Record exact observed counts if test subdivision changes. The endpoint shape sweep does not prove continuous rotational swept clearance; bounded torque and Rapier contacts enforce physical rotation. Center-to-eye visibility is deliberately conservative, including when only one end of the plank is visible. Render-grouping equality is a same-runtime check, not cross-platform bit-identical replay.
 
 ## Task 3: Input edge buffer and session toggle
 
@@ -464,7 +679,7 @@ test('toggle is session state and input loss clears all pending actions', () => 
 test('rotation consumes mouse motion without camera motion and wheel is bounded', () => {
   const input = setup();
   assert.equal(input.motion(40, 20), false);
-  input.button(2, true); input.rotate(true);
+  input.button(2, true); input.sample(0, 0); input.setHolding(true); input.rotate(true);
   assert.equal(input.motion(40, 20), true);
   input.wheel(-10000);
   const sample = input.sample(1, 0.2);
@@ -474,6 +689,23 @@ test('rotation consumes mouse motion without camera motion and wheel is bounded'
   assert.equal(input.sample(1, 0.2).rotateYaw, 0);
   input.setActive(false);
   assert.equal(input.motion(100, 100), false);
+});
+test('failed pickup leaves camera free and a thrown toggle grip can acquire on the next click', () => {
+  const input = setup();
+  input.setToggle(true);
+  input.button(2, true); input.button(2, false);
+  input.setHolding(false); // Feedback before sampling must preserve the pending acquire.
+  assert.equal(input.sample(0, 0).acquire, true);
+  input.setHolding(false); input.rotate(true);
+  assert.equal(input.motion(20, 0), false);
+  input.button(2, true); input.button(2, false);
+  assert.equal(input.sample(0, 0).acquire, true);
+  input.setHolding(true);
+  input.button(0, true); input.button(0, false);
+  assert.equal(input.sample(0, 0).throwPressed, true);
+  input.setHolding(false);
+  input.button(2, true); input.button(2, false);
+  assert.equal(input.sample(0, 0).acquire, true);
 });
 ```
 
@@ -485,16 +717,21 @@ test('rotation consumes mouse motion without camera motion and wheel is bounded'
 import type { GripCommand } from '../physics/grip.ts';
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 export function createGripInput() {
-  let active = false, toggle = false, wanted = false, rotating = false;
+  let active = false, toggle = false, wanted = false, rotating = false, holding = false, sampled = false;
   let acquire = false, throwPressed = false, distanceDelta = 0, rotateYaw = 0, rotatePitch = 0;
   const buttons = new Set<number>();
   function clear(): void {
-    wanted = false; rotating = false; acquire = false; throwPressed = false;
+    wanted = false; rotating = false; holding = false; sampled = false; acquire = false; throwPressed = false;
     distanceDelta = 0; rotateYaw = 0; rotatePitch = 0; buttons.clear();
   }
   return {
     setActive(value: boolean): void { active = value; if (!active) clear(); },
     setToggle(value: boolean): void { toggle = value; clear(); },
+    setHolding(value: boolean): void {
+      holding = active && value;
+      if (sampled && !holding && !acquire) wanted = false;
+      sampled = false;
+    },
     button(button: number, down: boolean): void {
       if (!down) { buttons.delete(button); if (button === 2 && !toggle) wanted = false; return; }
       if (!active || buttons.has(button)) return;
@@ -504,7 +741,7 @@ export function createGripInput() {
     },
     rotate(value: boolean): void { rotating = active && value; },
     motion(x: number, y: number): boolean {
-      if (!active || !wanted || !rotating) return false;
+      if (!active || !holding || !rotating) return false;
       if (!Number.isFinite(x) || !Number.isFinite(y)) { clear(); return true; }
       rotateYaw = clamp(rotateYaw - x * 0.004, 0.12);
       rotatePitch = clamp(rotatePitch - y * 0.004, 0.12);
@@ -513,6 +750,7 @@ export function createGripInput() {
     wheel(delta: number): void { if (active && wanted && Number.isFinite(delta)) distanceDelta = clamp(distanceDelta + delta * 0.002, 0.5); },
     sample(yaw: number, pitch: number): GripCommand {
       const result = { wanted: active && wanted, acquire, throwPressed, yaw, pitch, distanceDelta, rotateYaw, rotatePitch };
+      sampled = true;
       acquire = false; throwPressed = false; distanceDelta = 0; rotateYaw = 0; rotatePitch = 0;
       return result;
     },
@@ -520,7 +758,7 @@ export function createGripInput() {
 }
 ```
 
-- [ ] **Step 4: Run `rtk node --test tests/gripInput.test.mjs`.** Expected 3/3 pass.
+- [ ] **Step 4: Run `rtk node --test tests/gripInput.test.mjs`.** Expected 4/4 pass.
 
 - [ ] **Step 5: Integrate in `game/src/input/browserInput.ts`.** Add `import { createGripInput } from './gripInput.ts';`, create `const grip = createGripInput();` beside `actions`. Add the following branches before `MOVEMENT_KEYS` lookup in the event handlers:
 
@@ -556,7 +794,412 @@ Add `grip.setActive(next);` inside `setActive` beside `actions.setActive(next);`
 
 ```ts
   return { setActive, sample, look, resetLook, dispose,
-    sampleGrip: () => grip.sample(yaw, pitch), setGripToggle: grip.setToggle };
+    sampleGrip: () => grip.sample(yaw, pitch), setGripToggle: grip.setToggle, setGripHolding: grip.setHolding };
 ```
 
 DOM integration stays pending GREEN until the real browser test in Task 5 is added and run; pure input GREEN alone does not prove pointer-lock lifecycle behavior.
+
+## Task 4: Real browser RED, lifecycle wiring and compact presentation
+
+- [ ] **Step 1: Append this test to `game/browser/yard.spec.mjs` before browser/main/render/HTML production changes.** It uses the existing Vite/Chromium fixture and failure observer. The only page state it reads is detached diagnostics; aiming and actions use actual Playwright mouse/keyboard events.
+
+```js
+test('physical Grip supports hold, wheel, rotation, throw, toggle recovery and pause/restart', { timeout: 90_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  let mouseX = 0, mouseY = 0;
+  async function start() {
+    const bounds = await page.locator('#start').boundingBox();
+    mouseX = bounds.x + bounds.width / 2; mouseY = bounds.y + bounds.height / 2;
+    await page.locator('#start').click();
+    await page.waitForFunction(() => window.__yard().running);
+  }
+  async function motion(dx, dy) {
+    mouseX += dx; mouseY += dy;
+    await page.mouse.move(mouseX, mouseY);
+  }
+  async function aimAngles(yaw, pitch) {
+    const look = await page.evaluate(() => window.__yard().look);
+    const yawDelta = Math.atan2(Math.sin(yaw - look.yaw), Math.cos(yaw - look.yaw));
+    await motion(-yawDelta / 0.002, -(pitch - look.pitch) / 0.002);
+  }
+  async function aimAt(id) {
+    const angles = await page.evaluate((bodyId) => {
+      const state = window.__yard().snapshot;
+      const point = state.bodies.find(body => body.id === bodyId).position;
+      const eye = state.player.eye;
+      return { yaw: Math.atan2(eye.x - point.x, eye.z - point.z),
+        pitch: Math.atan2(point.y - eye.y, Math.hypot(point.x - eye.x, point.z - eye.z)) };
+    }, id);
+    await aimAngles(angles.yaw, angles.pitch);
+  }
+  async function ticks(count) {
+    const before = await page.evaluate(() => window.__yard().tick);
+    await page.waitForFunction(({ before, count }) => window.__yard().tick >= before + count, { before, count });
+  }
+  try {
+    await waitForReady(page);
+    const initial = await page.evaluate(() => window.__yard());
+    assert.equal(initial.snapshot?.grip.heldId, null, 'detached Grip diagnostics must exist before start');
+    assert.equal(initial.running, false);
+    await start();
+    await ticks(30);
+    await aimAt('stone');
+    await page.mouse.down({ button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+    await aimAngles(0, 0);
+    await ticks(90);
+    const held = await page.evaluate(() => window.__yard());
+    assert.ok(held.snapshot.bodies.find(body => body.id === 'stone').position.y > 1);
+    assert.equal(await page.evaluate(() => {
+      const copy = window.__yard();
+      copy.look.yaw = 900;
+      copy.snapshot.grip.target.x = 900;
+      copy.snapshot.bodies[0].position.x = 900;
+      const fresh = window.__yard();
+      return fresh.look.yaw !== 900 && fresh.snapshot.grip.target.x !== 900 && fresh.snapshot.bodies[0].position.x !== 900;
+    }), true, 'window diagnostics must return detached state');
+    await page.mouse.wheel(0, -200);
+    await ticks(10);
+    assert.ok(await page.evaluate(distance => window.__yard().snapshot.grip.distance < distance, held.snapshot.grip.distance));
+    const beforeRotate = await page.evaluate(() => window.__yard().look);
+    const oldRotation = await page.evaluate(() => window.__yard().snapshot.bodies.find(body => body.id === 'stone').rotation);
+    await page.keyboard.down('KeyR');
+    for (let turn = 0; turn < 6; turn++) { await motion(20, -5); await ticks(2); }
+    await page.keyboard.up('KeyR');
+    await ticks(30);
+    assert.deepEqual(await page.evaluate(() => window.__yard().look), beforeRotate);
+    const rotated = await page.evaluate(() => window.__yard().snapshot.bodies.find(body => body.id === 'stone').rotation);
+    assert.ok(Math.abs(oldRotation.x * rotated.x + oldRotation.y * rotated.y + oldRotation.z * rotated.z + oldRotation.w * rotated.w) < 0.99);
+    await page.screenshot({ path: join(captures, 'grip-active.png') });
+    await page.mouse.click(mouseX, mouseY, { button: 'left' });
+    await ticks(2);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+    await page.mouse.up({ button: 'right' });
+
+    await aimAngles(0, 1.1);
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await ticks(2);
+    const failedLook = await page.evaluate(() => window.__yard().look);
+    await page.keyboard.down('KeyR'); await motion(40, 0); await page.keyboard.up('KeyR');
+    assert.notEqual((await page.evaluate(() => window.__yard().look)).yaw, failedLook.yaw, 'R must not freeze camera after failed pickup');
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    await page.locator('#controls summary').click();
+    await page.locator('#grip-toggle').check();
+    await page.locator('#gore').uncheck();
+    await page.locator('#restart').click();
+    await page.waitForFunction(() => window.__yard().restarts === 1 && !document.querySelector('#start').disabled);
+    const paused = await page.evaluate(() => window.__yard());
+    await page.keyboard.down('KeyR'); await page.mouse.move(1300, 100); await page.keyboard.up('KeyR');
+    await page.mouse.click(1300, 100, { button: 'right' });
+    assert.deepEqual((await page.evaluate(() => window.__yard())).look, paused.look);
+    assert.equal(await page.locator('#gore').isChecked(), false);
+    assert.equal(await page.locator('#grip-toggle').isChecked(), true);
+    await start(); await ticks(30);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null, 'start click must not acquire or throw');
+    await aimAt('stone');
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+    await aimAngles(0, 0); await ticks(90);
+    await page.mouse.click(mouseX, mouseY, { button: 'left' }); await ticks(2);
+    await aimAt('crate-a');
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'crate-a');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null, 'pause releases immediately without another physics tick');
+    await start(); await ticks(10);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#start').disabled);
+    await page.locator('#controls summary').click();
+    assert.equal(await page.locator('#grip-toggle').isChecked(), false, 'Grip toggle is explicitly session-only');
+    assert.equal(await page.locator('#gore').isChecked(), false, 'gore false remains independently persisted');
+    assertNoFailures();
+  } finally { await context.close(); }
+});
+```
+
+- [ ] **Step 2: Run `rtk node --test --test-name-pattern="physical Grip" browser/yard.spec.mjs`.** Expected RED at the initial detached Grip diagnostics assertion. A startup/import error is not sufficient. Record the observed assertion before integration.
+
+- [ ] **Step 3: Edit `game/src/main.ts` with these exact integration changes.** Expand the existing Yard type import and replace Diagnostics:
+
+```ts
+import type { Yard, YardSnapshot } from './physics/yard.ts';
+type Diagnostics = {
+  running: boolean; tick: number; restarts: number;
+  position: { x: number; y: number; z: number };
+  counts: { bodies: number; colliders: number };
+  gpu: { geometries: number; textures: number; programs: number };
+  look: { yaw: number; pitch: number };
+  snapshot: YardSnapshot | null;
+};
+```
+
+Add next to `goreCheckbox`:
+
+```ts
+const gripToggle = requireElement<HTMLInputElement>('#grip-toggle');
+const hint = requireElement<HTMLElement>('#hint');
+gripToggle.checked = false;
+```
+
+Add `yard?.releaseGrip();` immediately after `input?.setActive(false);` inside `pause()`. Replace the one-line `advance` callback inside `renderFrame`:
+
+```ts
+    const result = advance(elapsed, running, () => {
+      if (!yard || !input) return;
+      yard.step(input.sample(), input.sampleGrip());
+      input.setGripHolding(yard.snapshot().grip.heldId !== null);
+    });
+```
+
+Replace the `view.render(yard.snapshot(), ...)` call with:
+
+```ts
+    const snapshot = yard.snapshot();
+    view.render(snapshot, running && !resumedNeedsStep ? result.alpha : 1, look.yaw, look.pitch);
+    hint.textContent = !running ? 'GRIP / M1B-1' : snapshot.grip.heldId
+      ? `${snapshot.grip.mass?.toFixed(1)} KG · ${snapshot.grip.distance.toFixed(1)} M · R ROTERA · VÄNSTERKLICK KASTA`
+      : snapshot.grip.candidateId ? 'HÖGERKLICK · GRIP' : 'SIKTA PÅ ETT FYSISKT OBJEKT · HÖGERKLICK GRIP';
+```
+
+Immediately after `input = createBrowserInput(() => pause());` add:
+
+```ts
+    input.setGripToggle(gripToggle.checked);
+    gripToggle.addEventListener('change', () => {
+      yard?.releaseGrip();
+      input?.setGripToggle(gripToggle.checked);
+    }, { signal: lifecycle.signal });
+```
+
+Add fields to the object returned by the existing development-only `window.__yard` getter:
+
+```ts
+        look: input?.look() ?? { yaw: 0, pitch: 0 },
+        snapshot: yard?.snapshot() ?? null,
+```
+
+Do not expose yard/controller/renderer references or a setter on the window. `replaceWorld` already pauses before replacing, resets look, and begins paused; the session toggle remains in the same input object across restarts. `dispose()` releases through `yard.destroy()`.
+
+- [ ] **Step 4: Edit `game/src/render/yardView.ts` to add one owned tether and held highlight.** After `scene.add(worldRoot);`, insert:
+
+```ts
+  const tetherGeometry = new THREE.BufferGeometry();
+  const tetherPoints = new Float32Array(6);
+  tetherGeometry.setAttribute('position', new THREE.BufferAttribute(tetherPoints, 3));
+  const tetherMaterial = new THREE.LineBasicMaterial({ color: '#d9b66c', transparent: true, opacity: 0.55 });
+  const tether = new THREE.Line(tetherGeometry, tetherMaterial);
+  tether.frustumCulled = false;
+  tether.visible = false;
+  scene.add(tether);
+```
+
+Inside `reset()` after its disposed guard, insert `tether.visible = false;`. Inside the pose loop after `mesh.quaternion.slerpQuaternions(...)`, insert:
+
+```ts
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      material.emissive.set(snapshot.grip.heldId === pose.id ? '#b9924f' : '#000000');
+      material.emissiveIntensity = snapshot.grip.heldId === pose.id ? 0.28 : 0;
+```
+
+After `camera.rotation.set(...)` and before `renderer.render(...)`, insert:
+
+```ts
+    const heldMesh = snapshot.grip.heldId ? meshes.get(snapshot.grip.heldId) : undefined;
+    tether.visible = heldMesh !== undefined;
+    if (heldMesh) {
+      tetherPoints.set([
+        camera.position.x + Math.cos(yaw) * 0.18, camera.position.y - 0.18,
+        camera.position.z - Math.sin(yaw) * 0.18,
+        heldMesh.position.x, heldMesh.position.y, heldMesh.position.z,
+      ]);
+      tetherGeometry.getAttribute('position').needsUpdate = true;
+    }
+```
+
+In `dispose()`, immediately before `texture.dispose();`, insert:
+
+```ts
+    tetherGeometry.dispose();
+    tetherMaterial.dispose();
+```
+
+The two GPU resources are allocated once per view and reused through restarts. No particle system, additional renderer, texture or asset loader is added.
+
+- [ ] **Step 5: Edit `game/index.html`.** Replace title, hint and intro with these exact elements:
+
+```html
+    <title>Vadstena · Grip M1B-1</title>
+      <p id="hint">GRIP / M1B-1</p>
+      <p class="intro">Lyft sten, vrid trä och känn hur gårdens föremål svarar. Ett första prov av Grip.</p>
+```
+
+Add the following rows after the existing mouse control row:
+
+```html
+            <div><dt>Höger mus</dt><dd>Håll för Grip. Släpp greppet.</dd></div>
+            <div><dt>Vänster mus</dt><dd>Kasta det hållna objektet</dd></div>
+            <div><dt>R + mus</dt><dd>Rotera det hållna objektet</dd></div>
+            <div><dt>Mushjul</dt><dd>Ändra avståndet</dd></div>
+```
+
+Add before the gore checkbox:
+
+```html
+          <label class="check-row" for="grip-toggle"><input id="grip-toggle" type="checkbox" /><span>Växla Grip med högerklick</span></label>
+          <p class="fine-print">Grip-valet gäller den här sessionen. I växelläge släpper nästa högerklick objektet. Paus släpper alltid.</p>
+```
+
+Keep the existing gore default, storage text and honest prototype/NPC/gore scope statements. Append this specific CSS rule in `game/src/style.css` to keep the single hint compact at common PC widths:
+
+```css
+#hint { max-width: min(38rem, 55vw); text-align: right; line-height: 1.6; }
+```
+
+- [ ] **Step 6: Run `rtk npm run check` then the focused browser command from Step 2.** Expected 54 native tests and the new focused Grip browser test pass. Fix an actual observed failure with a narrow regression first when the existing test does not already reproduce it. If Playwright pointer-lock motion quantization changes the aim by a pixel, read the updated look and repeat bounded real mouse aim correction; do not add mutable diagnostics or replace mouse events with direct simulation calls.
+
+## Task 5: Focus-loss, placement and warm-resource browser acceptance
+
+- [ ] **Step 1: Append these two further browser tests and the shared helper to `game/browser/yard.spec.mjs` before implementing lifecycle/render changes.** The main interaction test above covers toggle, throw, rotation and failed-pickup look; these separate cases cover held-state lifecycle and repeated warm rendering without putting all work under one timeout.
+
+```js
+async function startAndHoldStone(page) {
+  const bounds = await page.locator('#start').boundingBox();
+  let x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+  await page.locator('#start').click();
+  await page.waitForFunction(() => window.__yard().running);
+  let state = await page.evaluate(() => window.__yard());
+  await page.waitForFunction(tick => window.__yard().tick > tick + 20, state.tick);
+  state = await page.evaluate(() => window.__yard());
+  const eye = state.snapshot.player.eye;
+  const point = state.snapshot.bodies.find(body => body.id === 'stone').position;
+  const yaw = Math.atan2(eye.x - point.x, eye.z - point.z);
+  const pitch = Math.atan2(point.y - eye.y, Math.hypot(point.x - eye.x, point.z - eye.z));
+  const difference = Math.atan2(Math.sin(yaw - state.look.yaw), Math.cos(yaw - state.look.yaw));
+  x -= difference / 0.002; y -= (pitch - state.look.pitch) / 0.002;
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: 'right' });
+  await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+  state = await page.evaluate(() => window.__yard());
+  x += state.look.yaw / 0.002; y += state.look.pitch / 0.002;
+  await page.mouse.move(x, y);
+  await page.waitForFunction(tick => window.__yard().tick >= tick + 75, state.tick);
+  assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), 'stone');
+}
+
+test('held Grip releases on real button-up, focus loss and pointer-lock loss without latent actions', { timeout: 90_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  try {
+    await waitForReady(page);
+    assert.equal((await page.evaluate(() => window.__yard())).snapshot?.grip.heldId, null);
+    await startAndHoldStone(page);
+    const beforeRelease = await page.evaluate(() => window.__yard());
+    await page.mouse.up({ button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === null);
+    await page.waitForFunction(tick => window.__yard().tick > tick + 90, beforeRelease.tick);
+    const afterRelease = await page.evaluate(() => window.__yard());
+    assert.ok(afterRelease.snapshot.bodies.find(body => body.id === 'stone').position.y < beforeRelease.snapshot.bodies.find(body => body.id === 'stone').position.y - 0.5);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    for (const boundary of ['blur', 'pointerlock']) {
+      await startAndHoldStone(page);
+      if (boundary === 'blur') await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      else await page.evaluate(() => document.exitPointerLock());
+      await page.waitForFunction(() => !window.__yard().running);
+      const paused = await page.evaluate(() => window.__yard());
+      assert.equal(paused.snapshot.grip.heldId, null);
+      await page.mouse.up({ button: 'right' });
+      await page.locator('#start').click();
+      await page.waitForFunction(tick => window.__yard().running && window.__yard().tick > tick + 15, paused.tick);
+      assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !window.__yard().running);
+    }
+    assertNoFailures();
+  } finally { await context.close(); }
+});
+
+test('ten acquired Grip restarts preserve warmed tether GPU and physics resources', { timeout: 180_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  try {
+    await waitForReady(page);
+    assert.equal((await page.evaluate(() => window.__yard())).snapshot?.grip.heldId, null);
+    await startAndHoldStone(page);
+    await waitAnimationFrames(page, 3);
+    const warm = await page.evaluate(() => window.__yard());
+    for (let restart = 1; restart <= 10; restart++) {
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !window.__yard().running);
+      await page.mouse.up({ button: 'right' });
+      await page.locator('#restart').click();
+      await page.waitForFunction(count => window.__yard().restarts === count && !document.querySelector('#start').disabled, restart);
+      assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+      await startAndHoldStone(page);
+      await waitAnimationFrames(page, 3);
+      const state = await page.evaluate(() => window.__yard());
+      assert.deepEqual(state.counts, warm.counts);
+      assert.deepEqual(state.gpu, warm.gpu);
+      assert.equal(state.snapshot.grip.joints, 0);
+      assert.equal(await page.locator('#viewport canvas').count(), 1);
+    }
+    assertNoFailures();
+  } finally { await context.close(); }
+});
+```
+
+- [ ] **Step 2: Observe their RED with `rtk node --test --test-name-pattern="held Grip releases|ten acquired Grip" browser/yard.spec.mjs` before Task 4 production changes.** Expected assertion failure for absent snapshot diagnostics. The synthetic window blur exercises the same registered boundary as an OS focus loss; pointer-lock loss uses the browser's real `exitPointerLock()` API. No simulation state is injected.
+
+## Task 6: Full acceptance, visual inspection and owned-file delivery
+
+- [ ] **Step 1: Run the full existing browser suite plus three new Grip cases with `rtk npm run test:browser`.** Expected nine passing browser tests, including actual BFCache restore, production diagnostics removal, movement/preferences, ten clean restarts, context loss, and pointer-lock rejection. Record actual counts and runtime. Run `rtk npm run build` after native/browser acceptance; do not run desktop builds or any executable.
+
+- [ ] **Step 2: Inspect the actual image `game/.playtest/grip-active.png` with `view_image`.** Check the held body is visibly lifted, the highlight/tether are readable, the crosshair stays clear, the hint does not overlap the brand, and the original sparse courtyard layout remains intact. If an adjustment is required, keep it within the existing highlight, line, or hint layout; repeat only the affected visual/browser check.
+
+- [ ] **Step 3: Self-review the exact diff with `rtk git diff --check` and `rtk git diff -- game/src game/tests/grip.test.mjs game/tests/gripInput.test.mjs game/browser/yard.spec.mjs game/index.html`.** Confirm no dynamic-body teleport/kinematic conversion, no per-frame resource creation, no unbounded impulse accumulation, no DOM or Three dependency in physics, no mutable window diagnostics, and no gore codec changes. The physics tests must show force and torque budgets, actual held contacts, conservative release reasons, and mass-dependent saturated throws. GPU counts after repeated resets remain covered by the existing regression.
+
+- [ ] **Step 4: Create `docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md` using `apply_patch`, recording actual observed evidence under this required structure.** The implementation writer supplies real command outputs and measurements; these fields are factual reports written after running, not assumed results:
+
+```markdown
+# M1B-1 Grip results
+
+## Delivered scope
+
+Describe the verified Grip interactions, session toggle and browser-only delivery.
+
+## Observed RED and GREEN
+
+Record each executed command, original failing assertion, later pass count, and relevant runtime.
+
+## Physics tuning and safety observations
+
+Record final force, acceleration, torque, throw and target-slew limits; measured lift/throw behavior; obstacle/plank contact results; release reasons; same-runtime 30/60/144 grouping result.
+
+## Browser and image evidence
+
+Link the actual active-Grip capture and report input, pause/restart, gore persistence, diagnostics stripping and errors observed.
+
+## Limits and subsequent work
+
+State that tuning is provisional and no subjective weight study, joined-chain validation, full P03/M1B, NPC/gore presentation, engine migration, historical scene, desktop repackaging, publication or deployment was completed here.
+```
+
+- [ ] **Step 5: Send the coordinator the ready diff and evidence for independent spec review followed by quality review.** Address concrete findings with regression coverage. Stage only these owned paths after coordinator release readiness; research reports remain coordinator-owned and `docs/research/deep-research/2026-09-08/work` stays untracked and untouched:
+
+```powershell
+rtk git add game/src/physics/grip.ts game/src/physics/yard.ts game/src/input/gripInput.ts game/src/input/browserInput.ts game/src/main.ts game/src/render/yardView.ts game/src/style.css game/index.html game/tests/grip.test.mjs game/tests/gripInput.test.mjs game/browser/yard.spec.mjs docs/superpowers/plans/2026-09-08-grip-telekinesis.md docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md
+rtk git diff --cached --stat
+rtk git commit -m "feat: add bounded physical Grip to the PC courtyard"
+```
+
+No broad staging, branch publication, merging, deployment, dependency changes or desktop package updates are authorized by this slice. Return `DONE` or `DONE_WITH_CONCERNS` with exact files, observed verification, committed SHA if committed, and remaining product limitations.

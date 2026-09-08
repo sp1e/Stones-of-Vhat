@@ -2,6 +2,8 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { YARD_LAYOUT } from '../content/yardLayout.ts';
 import type { BodyDefinition, Rotation, Shape, Vec3 } from '../content/yardLayout.ts';
 import { FIXED_DT } from '../runtime/fixedStep.ts';
+import { createGrip } from './grip.ts';
+import type { GripCommand, GripSnapshot } from './grip.ts';
 
 export type MoveIntent = {
   right: number;
@@ -12,6 +14,9 @@ export type MoveIntent = {
   jump: boolean;
 };
 export type BodyPose = {
+  sleeping: boolean;
+  velocity: Vec3;
+  angularVelocity: Vec3;
   id: string;
   position: Vec3;
   previousPosition: Vec3;
@@ -19,6 +24,7 @@ export type BodyPose = {
   previousRotation: Rotation;
 };
 export type YardSnapshot = {
+  grip: GripSnapshot;
   bodies: BodyPose[];
   player: {
     position: Vec3;
@@ -100,6 +106,7 @@ export async function createYard(options: {
       return { x: position.x, y: position.y + half + RADIUS - 0.1, z: position.z };
     };
     let previousEye = eyePosition();
+    const grip = createGrip(world, bodies, player);
     const recordPrevious = () => {
       for (const [id, body] of bodies) previous.set(id, { position: { ...body.translation() }, rotation: { ...body.rotation() } });
     };
@@ -110,7 +117,7 @@ export async function createYard(options: {
 
     return {
       layout,
-      step(intent: MoveIntent): void {
+      step(intent: MoveIntent, gripCommand?: GripCommand): void {
         assertAlive();
         if (![intent.right, intent.forward, intent.yaw].every(Number.isFinite)) throw new Error('Movement axes and yaw must be finite');
         recordPrevious();
@@ -163,14 +170,19 @@ export async function createYard(options: {
         const position = player.translation();
         player.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
         grounded = controller.computedGrounded();
+        grip.step(eyePosition(), gripCommand);
         world.step();
       },
+      releaseGrip(): void { assertAlive(); grip.release(); },
       snapshot(): YardSnapshot {
         assertAlive();
         return {
+          grip: grip.snapshot(),
           bodies: Array.from(bodies, ([id, body]) => {
             const old = previous.get(id)!;
-            return { id, position: { ...body.translation() }, rotation: { ...body.rotation() }, previousPosition: { ...old.position }, previousRotation: { ...old.rotation } };
+            return { id, position: { ...body.translation() }, rotation: { ...body.rotation() },
+              previousPosition: { ...old.position }, previousRotation: { ...old.rotation },
+              velocity: { ...body.linvel() }, angularVelocity: { ...body.angvel() }, sleeping: body.isSleeping() };
           }),
           player: { position: { ...player.translation() }, eye: eyePosition(), previousEye: { ...previousEye }, grounded, crouched },
         };
@@ -180,6 +192,7 @@ export async function createYard(options: {
       },
       destroy(): void {
         if (destroyed) return;
+        grip.release();
         destroyed = true;
         bodies.clear();
         previous.clear();
