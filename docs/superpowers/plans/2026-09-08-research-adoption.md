@@ -33,6 +33,8 @@ The research proposes B01-B03 before the whole production Grip dependency B05. O
 
 **New development-side diagnostic:** [raw joint probe results](2026-09-08-rapier-joint-probe-results.md) now demonstrate the limited single-axis API route in 24 isolated fixtures, with coordinator reproduction. They also expose that generic masks lock the named axes in 0.20.0 despite misleading comments. This narrows K01's API uncertainty; combined-axis/anatomical/full-rig acceptance stays open.
 
+[Relative-contact diagnostics](2026-09-08-relative-contact-probe-results.md) additionally reproduce an analytically solvable crossing that both endpoint-frozen casts miss, a matched near miss, TOI-unit equivalence and witness-frame caveats. These are useful B02 test seeds, not rotating-arm/projectile/anatomy acceptance.
+
 ## Historical phase and environment rules adopted
 
 Source: [history-environment](../../research/deep-research/2026-09-08/history-environment.md), especially the phase matrix and visually reviewed Hasselmo reproductions. These are research-derived constraints, not fresh archival verification by the development session.
