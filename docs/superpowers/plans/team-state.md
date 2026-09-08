@@ -98,3 +98,17 @@ Two consecutive corrected runs passed **2/2 desktop tests**, ending 14:55:04 and
 Task-scoped monitor polled Defender Operational events during each run, with stop-on-detection and executable-disappearance checks. No new matching event was observed. User's earlier allowance means absence of a new detection is not a clean-scan result or a false-positive verdict. No Vadstena process is intentionally left running. Full evidence and remaining limits: [Windows results](2026-09-05-windows-portable-results.md).
 
 Next Windows work: build/validate the actual single-file portable artifact, ordinary startup and default-profile behavior, retaining the security boundary. M1B magic remains the next gameplay increment. Neither the full chapter nor all Windows distribution acceptance is complete. Research handover: `docs/research/2026-09-08-deep-research-handover.md`.
+
+## 2026-09-08: M1B resumes alongside independent research
+
+Simon clarified that the separate research session must run in parallel, not gate gameplay development. Proceed with approved M1B. First bounded playable slice is Grip (lift/pull/rotate/place/throw), followed by Tryckstöt/Skärklang projectile work. No completed Grip slice alone closes the whole M1B milestone. Windows portable follow-up stays tracked but does not block browser gameplay development.
+
+Baseline for this work: commit `607fc0a` records the prior Windows acceptance/handover. Strict checks 32/32 and browser 6/6 pass freshly before Grip changes. The baseline browser suite took about 101 seconds, with the ten-restart test accounting for about 74 seconds; delayed buffered output was not a failure. Existing unrelated `docs/research/deep-research/` belongs to the parallel research session and is not staged or edited here.
+
+Allocation: `grip_implementation` -> Astra/high -> sole code/plan owner for coupled dynamics, input and render integration; reassess on API mismatches or failing physical trajectories. `grip_api_check` -> Astra/high -> read-only installed Rapier API/inertia probes during planning, completed without file writes. Exact API findings and real floor/inertia probe results were passed to the implementer. Coordinator owns this file and will independently review the executable plan and final behavior. Ordered spec then quality reviews remain required; no public deployment, dependency upgrades or desktop rebuilds in the Grip slice.
+
+## 2026-09-08 15:24: paused for compact and knowledge save
+
+User explicitly paused development. The Grip implementer was interrupted; no Grip production files or tests had been created/run. Only Tasks 1–3 of the executable plan are on disk, with input-state corrections and renderer/browser sections still pending. Core physics plan was internally approved for subsequent TDD, not executed. Do not present this as implemented Grip.
+
+Exact restart point and review findings are saved in repository-root `.continue-here.md`. User-requested reusable skill and memory extension note were written outside the repo; their paths are in that handoff. Preserve the parallel research directory. No further development or app launch until the user resumes after compact.
