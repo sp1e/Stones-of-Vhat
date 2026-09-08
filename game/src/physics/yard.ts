@@ -4,6 +4,8 @@ import type { BodyDefinition, Rotation, Shape, Vec3 } from '../content/yardLayou
 import { FIXED_DT } from '../runtime/fixedStep.ts';
 import { createGrip } from './grip.ts';
 import type { GripCommand, GripSnapshot } from './grip.ts';
+import { createBodyMotion, preflightMotionNames } from './bodyMotion.ts';
+import type { BodyRef, ColliderRef, MotionSource } from './bodyMotion.ts';
 
 export type MoveIntent = {
   right: number;
@@ -57,11 +59,10 @@ export async function createYard(options: {
   crouched?: boolean;
 } = {}) {
   const layout = options.layout ?? YARD_LAYOUT;
-  const ids = new Set<string>();
-  for (const definition of layout) {
-    if (ids.has(definition.id)) throw new Error(`Duplicate body id: ${definition.id}`);
-    ids.add(definition.id);
-  }
+  preflightMotionNames([
+    ...layout.map(definition => ({ bodyId: definition.id, colliderIds: ['shape'] })),
+    { bodyId: 'player', colliderIds: ['capsule'] },
+  ]);
 
   initialization ??= RAPIER.init();
   await initialization;
@@ -69,6 +70,7 @@ export async function createYard(options: {
   world.timestep = FIXED_DT;
   const bodies = new Map<string, RAPIER.RigidBody>();
   const previous = new Map<string, { position: Vec3; rotation: Rotation }>();
+  const motionSources: MotionSource[] = [];
 
   try {
     for (const definition of layout) {
@@ -78,7 +80,11 @@ export async function createYard(options: {
       const body = world.createRigidBody(description);
       const collider = colliderDescription(definition.shape).setFriction(0.7);
       if (definition.mass !== undefined) collider.setMass(definition.mass);
-      world.createCollider(collider, body);
+      const physicalCollider = world.createCollider(collider, body);
+      motionSources.push({ bodyId: definition.id, body, colliders: [{
+        colliderId: 'shape', collider: physicalCollider, role: 'blocker',
+        shape: () => definition.shape,
+      }] });
       bodies.set(definition.id, body);
     }
 
@@ -98,6 +104,11 @@ export async function createYard(options: {
     // One explicit initialization step publishes fresh colliders to Rapier's query pipeline.
     // Every subsequent step(intent) advances exactly one FIXED_DT; there are no hidden live steps.
     world.step();
+    motionSources.push({ bodyId: 'player', body: player, colliders: [{
+      colliderId: 'capsule', collider: playerCollider, role: 'navigation',
+      shape: () => ({ kind: 'capsule', halfHeight: half, radius: RADIUS }),
+    }] });
+    const motion = createBodyMotion(world, motionSources);
     let destroyed = false;
     let grounded = false;
     let verticalVelocity = 0;
@@ -172,7 +183,10 @@ export async function createYard(options: {
         grounded = controller.computedGrounded();
         grip.step(eyePosition(), gripCommand);
         world.step();
+        motion.completeStep();
       },
+      motionInterval() { assertAlive(); return motion.read(); },
+      assertMotionRef(ref: BodyRef | ColliderRef): void { assertAlive(); motion.assertRef(ref); },
       releaseGrip(): void { assertAlive(); grip.release(); },
       snapshot(): YardSnapshot {
         assertAlive();
@@ -194,6 +208,8 @@ export async function createYard(options: {
         if (destroyed) return;
         grip.release();
         destroyed = true;
+        motion.destroy();
+        motionSources.length = 0;
         bodies.clear();
         previous.clear();
         world.removeCharacterController(controller);
