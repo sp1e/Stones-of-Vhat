@@ -79,7 +79,8 @@ Rapier 0.20.0:s `castShape` har `targetDistance` före `maxToi`; äldre kodexemp
 - [x] M1A:s browserverktyg, preferenslagring och riktiga fysikvärld implementerade och granskade; 31 tester. Se [fysikprotokollet](2026-09-05-physical-courtyard-results.md).
 - [x] M1A:s spelbara PC-vy byggd, testad och oberoende granskad: 6d92691 + 7ca88a0, 31 modultester och fem webbläsartester. Se [browserprotokollet](2026-09-05-playable-courtyard-results.md).
 - [ ] M1A:s separata Windows `.exe` byggd och verifierad; paketeringen pågår.
-- [ ] M1B:s Grip och magiska projektiler implementerade och verifierade; först då är hela M1 klar.
+- [x] M1B-1:s spelbara Grip implementerad och verifierad 2026-09-08: 57/57 modultester, strikt typkontroll, 9/9 webbläsartester, webbbygge samt separat spec- och kodgranskning PASS. Se [Grip-protokollet](2026-09-08-grip-telekinesis-results.md). Det befintliga Windows-bygget innehåller inte Grip.
+- [ ] Återstående M1B: Focus och magiska projektiler; full M1 är ännu inte klar. [B01a:s rörelse-/poseprov](2026-09-08-body-motion-next-slice.md) är nästa researchstyrda förutsättning före B02:s rörliga kontakt och vidare anatomi.
 - [ ] M2–M5 planerade och genomförda i beroendeordning.
 
 Användarens tidigare val av subagent-driven-development gäller som exekveringssätt: en implementerare i taget, därefter separat specgranskning och separat kodkvalitetsgranskning. Inga nya designgodkännanden efterfrågas för oförändrad godkänd omfattning.

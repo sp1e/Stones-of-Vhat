@@ -1,49 +1,65 @@
-# Vadstena — spelbar teknikgård M1A
+# Vadstena — spelbar Grip-prototyp M1B-1
 
-M1A är en lokalt spelbar PC-webbprototyp med Three.js-rendering och Rapier-fysik. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och återstartslivscykel — inte en historisk rekonstruktion.
+En lokal PC-webbprototyp med Three.js-rendering, Rapier-fysik och fysisk telekinesi. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och magins grundmekanik — inte den historiska Vadstenamiljön.
+
+Grip är implementerat och godkänt i separata spec- och kodgranskningar: strikt typkontroll, 57 modultester, nio webbläsartester och webbbygget passerar. Se [Grip-resultatet](../docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md) för testbevis, granskningar och avgränsningar. Ett klart Grip-prov betyder inte att hela M1B eller kapitlet är färdigt.
+
+## Kör lokalt
 
 Krav: Node 24.12–24.x och npm. Kör från arbetskopians rot:
 
-    rtk npm --prefix game ci
-    rtk npm --prefix game run dev
+    rtk proxy npm --prefix game ci
+    rtk proxy npm --prefix game run dev
 
-Öppna sedan `http://127.0.0.1:5173/vadstena/`. Produktionsbygge och lokal preview:
+Öppna [PC-prototypen](http://127.0.0.1:5173/vadstena/). Beroendena behöver bara installeras när de saknas eller den låsta installationen behöver återskapas. Produktionsbygge och lokal preview:
 
-    rtk npm --prefix game run build
-    rtk npm --prefix game run preview
+    rtk proxy npm --prefix game run build
+    rtk proxy npm --prefix game run preview
 
-Kontroller: WASD för rörelse, mus för blick, Shift för sprint, Space för hopp, C för att huka och Esc eller Tab för paus. Startknappen begär browserns pointer lock; spelet börjar inte simulera innan låset faktiskt är aktivt. Gore-inställningen är på som standard och sparas lokalt, men M1A innehåller ännu inga gore-effekter.
+Startknappen begär webbläsarens muslås; simuleringen börjar först när låset faktiskt är aktivt.
 
-Verifiering:
+## Kontroller
 
-    rtk npm --prefix game run check
-    rtk npm --prefix game run test:browser
+| Kontroll | Funktion |
+| --- | --- |
+| WASD / mus | Rörelse / blick |
+| Shift / Space / C | Sprint / hopp / huka |
+| Höger musknapp | Håll för Grip; släpp knappen för att släppa objektet fysiskt |
+| Mushjul | Flytta greppets önskade avstånd |
+| R + mus | Rotera ett hållet objekt utan att vrida kameran |
+| Vänster musknapp | Kasta ett hållet objekt |
+| Esc / Tab | Pausa och släpp greppet direkt |
 
-Implementerat i M1A: förstapersonsrörelse, sprint, hopp, hukning, trappor, ramp, låg passage, fem fysiska rekvisitaobjekt, paus/fokusgrind, beständig inställning, ren återstart av fysikvärlden samt säker omladdningsåterhämtning vid WebGL-kontextförlust och återkomst från browserns sidcache.
+Pausmenyn erbjuder även högerklick för att **växla** Grip. Det valet gäller endast den aktuella sessionen och återställs när sidan laddas om; paus släpper alltid objektet. Gore är **på från första start**, med ett separat sparat av-val. Prototypen har ännu inga NPC:er eller gore-effekter.
 
-Inte implementerat ännu: fysisk Grip, projektiler, NPC:er, strid, ragdoll, gore-grafik eller historisk spelvärld.
+## Verifiering och omfattning
 
-## Windows-paketering: byggd men ostartad
+    rtk proxy npm --prefix game run check
+    rtk proxy npm --prefix game run test:browser
 
-En separat Electron-wrapper, byggskript och paketeringskonfiguration finns i grenen. Det uppackade `release/win-unpacked/Vadstena.exe` är byggt och ligger på disk, men **det har aldrig startats**. Se [verifieringsresultatet](../docs/superpowers/plans/2026-09-05-windows-portable-results.md) för exakt evidens.
+Implementerat: förstapersonsrörelse, sprint, hopp, hukning, trappor/ramp/låg passage, fem fysiska rekvisitaobjekt, fysisk Grip med begränsad kraft och vridmoment, sikt-/massa-/avståndsgränser, placering genom fysisk sänkning/släpp, kast, markerat hållet objekt och en diskret magitråd. Paus, fokusförlust, muslåsförlust och omstart rensar input/grepp. WebGL-kontextförlust och sidcache-återkomst har återhämtning.
 
-Bakgrund: den 5 september 2026 satte Microsoft Defender ett tidigare bygge av samma fil i karantän med detektionen `Trojan:Win32/Cinjo.O!cl`. Simon tillät därefter filerna själv och godkände fortsatt arbete, varpå ett kontrollerat ombygge genomfördes. Det är fortfarande **inte fastställt** om detektionen var falsk. Inga undantag eller karantänåterställningar har gjorts av projektets verktyg.
+De automatiska webbläsartesterna använder Chromium/SwiftShader. De är funktions- och resurskontroller, inte uppmätt hårdvaruprestanda eller mänsklig bedömning av spelkänslan. Den stora befintliga Rapier/Three-bunten ger fortfarande Vites storleksvarning.
 
-Den 7 september 2026 jämfördes **samtliga 15 PE-sektioner** i den genererade filen mot den officiella Electron 44.2.0-runtimen. Fjorton är bit-identiska, inklusive hela kodsektionen `.text` (192 561 152 byte). Exakt en skiljer sig: `.rsrc`, med +512 byte — resurssektionen där ikon, produktnamn och versionsinformation ligger. Hela filens differens på 512 byte förklaras alltså i sin helhet av `.rsrc`; ingen annan sektion har ändrats med en enda byte. Det visar att paketeringsverktyget inte lagt in egen körbar kod. Det bevisar inte att detektionen var falsk och ersätter inte en säkerhetsgranskning.
+Inte implementerat ännu: Focus, magiska projektiler, NPC:er, närstrid, ragdolls, anatomisk avskiljning/gore-grafik, historisk spelmiljö och kapitlets berättelse. Mobilutveckling är uppskjuten.
 
-Tre tidigare rapporterade källfel är åtgärdade och verifierade i koden: profilkatalogen skapas synkront före `app.setPath` (`desktop/main.mjs`), ASAR-arkivet utesluter runtime-beroenden via `!node_modules/**/*` (`electron-builder.yml`), och den upprepade EPERM-omdöpningen kringgås av `electronDist: node_modules/electron/dist` tillsammans med `electron:runtime`-bootstrap.
+De [adopterade researchbesluten](../docs/superpowers/plans/2026-09-08-research-adoption.md) styr nästa etapp. [Nästa avgränsade steg](../docs/superpowers/plans/2026-09-08-body-motion-next-slice.md) är kroppsidentitet/rörelse och animation-till-fysik för en testarm, före rörlig projektilkontakt.
 
-Följande kommandon är förberedda. `pack:desktop`, `dist:desktop` och `test:desktop` är ännu inte godkända leveranskontroller:
+## Windows: tidigare uppackat bygge, inte den nya Grip-versionen
+
+Det befintliga `game/release/win-unpacked/Vadstena.exe` innehåller den tidigare M1A-gården. **Det har inte byggts om med Grip.** Enligt [Windows-protokollet](../docs/superpowers/plans/2026-09-05-windows-portable-results.md) godkände Simon en kontrollerad start, och den 8 september passerade det befintliga bygget två på varandra följande körningar med 2/2 desktoptester: faktisk start, muslås, rörelse, paus och inställningspersistens i isolerad testprofil. AMD Radeon 860M/ANGLE Direct3D11 observerades; ingen FPS-mätning hävdas.
+
+Defender satte ett tidigare bygge i karantän den 5 september som `Trojan:Win32/Cinjo.O!cl`. Simon tillät filerna själv. Inga nya matchande händelser observerades under de kontrollerade starterna, men tillåtelsen och filernas verifierade ursprung **bevisar inte en falsk positiv träff eller säkerhetsklarering**. Projektverktygen har inte ändrat Defender-inställningar, lagt till undantag eller återställt karantän. En ny varning stoppar fortsatt körning.
+
+Bygg- och testkommandon finns nedan som dokumentation; de har inte körts som del av Grip-etappen:
 
     rtk proxy npm --prefix game run build:desktop
     rtk proxy npm --prefix game run pack:desktop
     rtk proxy npm --prefix game run test:desktop
     rtk proxy npm --prefix game run dist:desktop
 
-Avsedd portabel fil är `game/release/Vadstena-0.1.0-win-x64-portable.exe`, en osignerad självuppackande x64-fil utan installerare. **Den är inte byggd än** — `dist:desktop` har aldrig körts. Windows kan visa säkerhetsvarningar för osignerade filer. Avsedd profil är `%APPDATA%/Vadstena`; inställningarna följer alltså inte med när programfilen flyttas, och webb- och desktopprofiler är separata.
+Den avsedda portabla filen är `game/release/Vadstena-0.1.0-win-x64-portable.exe`. **Den är ännu inte byggd och accepterad.** Vanlig start utan testflaggor, standardprofilen `%APPDATA%/Vadstena`, paketerade framtida assets och FPS återstår att verifiera. Webb- och desktopprofiler är separata.
 
-Wrappern kör samma PC-gård offline från `app://game/`, med samma kontroller som webbversionen. Webbygget behåller `/vadstena/` och `dist/`; desktopbygget har en separat renderer i `desktop/renderer/`. Electron-fönstret är konfigurerat för sandbox, isolerad kontext, inget Node i renderern, ingen preload eller IPC, restriktiv CSP och blockerade externa sidor. Detta är **konfiguration läst i källkoden, inte verifierad i körning**. Mobilversion ingår inte.
+Electron-wrappern är konfigurerad för lokalt `app://game/`, sandbox, isolerad kontext, inget Node i renderern, ingen preload/IPC och begränsad CSP/navigering. Separera verifierade kontroller i Windows-protokollet från sådant som endast lästs i källkoden. Nytt Windows-bygge och distributionsacceptans är separata arbetssteg.
 
-Kvar att verifiera i körning: att fönstret startar överhuvudtaget, faktiskt muslås, GPU-renderare och bildfrekvens, att profilen skapas och består mellan starter, samt att Defender inte reagerar på nytt.
-
-Ingen publicering eller ändring av sp1e.se ingår i M1A.
+Ingen publicering eller ändring av sp1e.se har gjorts.

@@ -1,6 +1,6 @@
 # Game1 team state
 
-Updated 2026-09-08. Coordinator owns this file. Latest Windows acceptance is in the dated section at the end; older chronological entries retain their original status.
+Updated 2026-09-08. Coordinator owns this file. The final dated Grip completion section is current; older chronological entries retain their original status. Current handoff: repository-root `.continue-here.md`.
 
 ## Outcome and scope
 
@@ -20,6 +20,7 @@ Branch: codex/vadstena-runtime-foundation
 | Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Complete 6d92691 + BFCache fix 7ca88a0; 31 native, 5 browser tests and production build pass |
 | Integrated browser QA and visual checks | Coordinator, browser_spec (gpt-5.6-terra/high), browser_quality (gpt-6-astra/high) | Spec PASS; quality P2 resolved and independently rechecked with real BFCache; no remaining important findings |
 | Windows portable .exe packaging | Coordinator; windows_acceptance_review (gpt-6-astra/high), read-only review | Existing unpacked exe accepted twice on 2026-09-08 after harness-only fixes; actual AMD hardware rendering, pointer lock, movement, pause and isolated-profile persistence. Portable artifact, ordinary/default-profile launch and FPS remain unverified |
+| M1B-1 playable Grip | grip_implementation, coordinator, independent core and UI spec/quality reviewers | Complete for ordinary-prop PC browser slice; strict types, 57 native tests, 9 browser tests and web build PASS. No Grip desktop rebuild or complete M1B claim |
 
 ## Team workflow decisions
 
@@ -119,4 +120,24 @@ Simon explicitly resumed, supplied the completed research directory and requeste
 
 Fresh baseline: strict typecheck and **32/32 native tests PASS** before Grip source edits. Existing linked worktree and branch verified; no new worktree or dependency installation. Native team allocation: interrupted `grip_implementation` (Astra/high) resumes as sole coupled Grip plan/code owner; `grip_api_check` (Astra/high) independently checked new research against installed APIs while coordinator integrated the reports. Reassessment is tied to physical trajectory/API/test failures, not model laddering. No API blocker invalidates ordinary-prop Grip; actual-held input correction and stronger mass/contact/replay tests are required.
 
-Current step: finish and internally review the revised executable Grip plan, then TDD implementation. Three.js runtime/UI/playtest skills preserve simulation separation, sparse HUD and actual screenshot verification; PC-only user scope overrides mobile defaults. Ordered independent spec then quality review remains mandatory. Joint/pose, moving-contact, skinned asset and minimal package-resource gates precede final NPC production/engine lock; Grip alone does not close M1B. No desktop rebuild, exe launch, website change, purchase or security-setting mutation belongs to this Grip slice.
+Three.js runtime/UI/playtest skills preserve simulation separation, sparse HUD and actual screenshot verification; PC-only user scope overrides mobile defaults. Ordered independent spec then quality review remains mandatory. Joint/pose, moving-contact, skinned asset and minimal package-resource gates precede final NPC production/engine lock; Grip alone does not close M1B. No desktop rebuild, exe launch, website change, purchase or security-setting mutation belongs to this Grip slice.
+
+Core checkpoint: the completed executable plan was internally approved and implemented test-first by the sole writer. Independent `grip_core_spec` then `grip_core_quality` approved the final core after a real two-wall contact fixture and stale-hover regression were corrected. Commit **1bb5bfe** contains only the five owned core code/test/plan/result paths. Its final core suite has 19 Grip tests (51 total native tests at that checkpoint). No UI acceptance is implied by the core reviews.
+
+Research integration is committed as **05dbc96**. The coordinator and read-only physics worker measured single-axis joint limits/masks and relative moving shape contact against analytical and negative controls; **05aeb5e** preserves the latter diagnostic. Full B01/B02 and anatomical acceptance remain open. The next-slice read-only contract mapper prepares bounded B01 interfaces while the sole writer finishes current UI; it owns no production files.
+
+Current step: input/UI/browser verification. Coordinator freshly reran strict checks with **56/56 native tests PASS** and inspected `game/.playtest/grip-active.png`: lifted highlighted stone and readable compact HUD, with tether visibility flagged for modest polish. Full browser regression and fresh ordered UI spec/quality review are pending. The existing Windows executable has not been rebuilt and does not contain Grip.
+
+## 2026-09-08: playable Grip accepted; next slice prepared
+
+M1B-1 is now implemented and accepted for ordinary dynamic props in the PC browser courtyard. Hold/toggle acquisition, bounded physical lift/rotation/throw, wheel distance, physical placement/release, actual-held input feedback, immediate pause release, compact HUD/highlight and a visible owned tether are wired through the real runtime. Gore-on-default and saved false remain independent; no NPC/gore graphics or historical final environment is claimed.
+
+UI spec review found a real consecutive-tick click bug: input emitted separate event pulses, but physics applied a second level debounce and discarded the next valid acquisition after a miss. A real input-to-Rapier regression failed first in both hold/toggle modes. The owner removed redundant core debouncers and documented the level-versus-pulse contract. Spec reviewer independently reran 25 core/input tests and its original 8 kg fixture, including continued hold, pre-acquisition primary, throw and no latent commands: PASS. The earlier pre-acquisition-primary self-review regression also remains covered.
+
+Fresh final coordinator checks: strict TypeScript and **57/57 native tests PASS**; full post-fix browser suite **9/9 PASS, 105.78 s**. All six prior regressions remain, including actual full-Chromium BFCache, nested production base/stripped diagnostics, graphics recovery and watcher exclusions. The three Grip cases use actual mouse/keyboard and detached readonly state; ten warmed acquired-Grip restarts took 43.09 s with equal GPU/physics counts, zero joints and one canvas. Owner's post-fix web build passes. The existing large Rapier/Three bundle advisory remains; no performance budget or hardware FPS acceptance is inferred.
+
+Final fresh quality reviewer independently inspected all integrated files, passed 25 native Grip/input tests plus an EventTarget routing/disposal probe, checked diff whitespace and verified production diagnostic markers absent. **APPROVE, no actionable findings.** The coordinator and writer inspected the actual final `game/.playtest/grip-active.png`: clear lifted stone, unobstructed HUD/crosshair and fine gold tether after moving its origin forward from the camera plane. Reviews are complete, not merely scheduled.
+
+One production writer was preserved through all core/UI fixes; review/probe workers remained read-only. Coordinator owns research integration, current README/handoff and [B01a next-slice brief](2026-09-08-body-motion-next-slice.md). The brief received a read-only consistency PASS and is explicitly not executable code or a completed B01 milestone. Next: exact TDD plan for stable body/collider/world identity, motion intervals and a procedural two-segment animation-to-physics arm, before B02's moving-contact production integration. Full B01/B02, Focus, projectiles, anatomy/gore, historical environments and the chapter remain open.
+
+Local preview intentionally started at `http://127.0.0.1:5173/vadstena/` (execution session 45883); test-owned browsers/servers are closed. Verify liveness if returning later. `game/README.md` now distinguishes the playable Grip web source from the previous Windows executable and its scoped September 8 test evidence. No new desktop build, exe launch, publication, dependency change or security-setting change occurred during Grip development. Final source research reports are tracked unchanged; only their `work/` cache remains user-owned and untracked.
