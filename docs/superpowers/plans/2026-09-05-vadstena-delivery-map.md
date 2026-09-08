@@ -2,6 +2,10 @@
 
 Datum: 2026-09-05. Den detaljerade kapitelspecen är godkänd. Detta är en täcknings- och leveranskarta, inte en ersättning för respektive delsystems exekverbara TDD-plan.
 
+**Tillägg 2026-09-08:** [Researchens integrationsbeslut](2026-09-08-research-adoption.md) kompletterar denna karta. Slutför den återanvändbara Grip-delen; etablera därefter B01:s kropps-/rörelse-/identitetskontrakt med led-/poseprov, pröva B02:s rörliga volymkontakt mot detta och följ med B03:s skinnade arm/ägarskap. Ett minimalt B07-paketasset prövas också innan slutliga NPC-assets eller fysikbindning låses. Oberoende kontaktfixturer kan förberedas tidigare utan att hoppa över rörelsekontraktet. Ingen motorbytestvingande evidens finns ännu. Alla ursprungliga kapitelkrav består. Windows har separat godkänd uppackad teststart, men portable, vanlig profil och FPS återstår; äldre statustal längre ned är historiska.
+
+B04:s slutliga motorbeslut kräver dessutom en representativ gatusektion, en spelbar Klang-ledtråd och samma prov i verklig PC-webb- och Windows-export, inklusive observerad iteration. Dessa små M3/M4-representanter tidigareläggs före motorlåsning; ett rent led-/assetprov avgör inte hela motorvalet.
+
 ## Vad godkännandet omfattar
 
 Den fulla [kapitelspecen](../specs/2026-09-05-vadstena-chapter-design.md) gäller: 15–20 minuter, Tyngd och Klang, magisk avståndsstrid, närstrid, fysisk telekinesi, ledade NPC-ragdolls, nio förberedda snittförbindelser, gore PÅ från start med sparat AV, två problemlösningsvägar, två skolval och genomarbetade mellanmiljöer.

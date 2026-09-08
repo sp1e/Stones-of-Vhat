@@ -1,0 +1,23 @@
+# Riskregister och beslut som ännu kräver evidens
+
+Registret skiljer en dokumenterad lucka från ett faktiskt observerat runtimefel. **Öppen** betyder att angiven stängningskontroll återstår. Prioritet anger när frågan måste avgöras i förhållande till produktionen; den är inte en påhittad sannolikhetspoäng.
+
+| ID / prioritet | Risk och evidensläge | Beslut som påverkas | Minskning och stängningskontroll |
+|---|---|---|---|
+| K01 / P0 | Rapier JS:s publika sfäriska limitstöd är otillräckligt bekvämt; raw-funktion finns men stabilitet/axelkoppling är oprövad. | Slutlig fysikbindning och rigg. | B01: versionslåst adapter och riktig ledscen; Jolt-jämförelse vid misslyckande. Stäng först när begränsningar och livscykel fungerar inom kroppsbudget. |
+| K02 / P0 | Sweep mot fryst scen missar relativ/angulär rörelse; en konservativ marginal kan också ge falska träffar. | Kontaktarkitektur och Skärklang. | B02: analytiska fall, rotation, nära missar, första blockerare, TOI-/zonfel och C01–C05. |
+| K03 / P0 | Bindpose, caps, kläder, LOD och instanser kan fallera ihop trots enkel meshseparation. | NPC-assetproduktion. | B03: skinnad figur, två kopior, alla snitt efter första armgrinden; bildgranskning och mass-/ägarskapsräkning. |
+| K04 / P0 | En funktion finns native men fungerar sämre eller saknas i webexport. | Helt motorbyte. | B04 kör samma representativa scen i båda verkliga exporter. Godot/Unity-kapacitet får inte antas från native-editorn. |
+| K05 / P1 | Grip blir instabilt vid kontakt, hävarm eller hög masskvot. | Kraftmodell och nivåernas fysiska lösningar. | B05 loggar kontakt/energi/ledfel och provar upplevd vikt. Begränsa styrning; justera först efter identifierad orsak. |
+| K06 / P1 | Modern karta/silhuett projiceras felaktigt till 1510. Originalsigna och några byggfaser är olösta. | Historisk slutgeometri och ljudbaslinje. | B06: fasregister, kontrollerad kartreproduktion och dokumenterade antaganden; hämta särskilda original innan osäkra komponenter låses. |
+| K07 / P1 | Passagen, ederna eller mysteriet kräver att en viss NPC/unik rekvisita överlever. | Kapitelgraf och meningsfull handlingsfrihet. | B08: båda lösningar/eder, död informationsbärare och omförsök utan nyckel- eller belöningsfel. |
+| K08 / P1 | Hörbar mix, captions och AI reagerar olika; ljud av ändrar spelet. | Klang-arkitektur och tillgänglighet. | B07: en semantisk händelsemodell, portalprov och samma utfall med mono/ljud av. |
+| K09 / P1 | Tidsfas omsluter kroppar eller lämnar navigation/ljud i gammal fas. | Fasbyte och questfortsättning. | B08: förberedd atomär övergång, occupancy för alla relevanta kroppar, fungerande blockerings-/återhämtningsväg. |
+| K10 / P2 | Checkpoint duplicerar ägarskap/belöningar eller återställer gore från gammal kampanjdata. | Sparformat och livscykel. | B09: full PRNG/timers, stabila ID och graf; flera återladdningar med nuvarande preferenser före första bild. |
+| K11 / P2 | Ny positiv Windows-evidens feltolkas som komplett distribution eller säkerhetsklarering. | Portable och offentlig leverans. | B11: aktuell portable-wrapper, vanlig profilstart och offlinefall. Bevara den olösta Defender-historiken; uppackad acceptans är redan dokumenterad. |
+| K12 / P0-beroende | Desktopfilter/CSP/worker stoppar nästa riktiga GLB/KTX2/ljudasset. Kodlucka identifierad, assetprov ej kört. | Tidig assetpipeline och motorprov. | B07 börjar med minimala riktiga paketresurser i båda leveransformerna; smal policyändring och negativa protokollprov. |
+| K13 / P2 | Belastning/stutter och omstartsläckor syns först med hela scenen. | Grafiknivå och kapitelacceptans. | B10: R01–R03 med rådata, namngiven hårdvara och första kalla spellbilden. Skala presentation före regler. |
+| K14 / P2 | WASM blockeras av effektiv CSP; Pages filgräns eller cache gör publiceringen ofullständig. | Framtida sp1e-integration. | B11: testad effektiv policy på verkligt ursprung, versionskonsistenta assets och verifierad filbudget. Ingen publicering här. |
+| K15 / före assetåterbruk | Åtkomligt foto/karta/modell saknar verifierad återanvändningsrätt eller avser fel historisk fas. | Kommersiell assetanvändning. | Proveniens per asset, dokumenterad licens/upphov/omfattning; använd egen gestaltning med spårbara faktareferenser tills rättigheter är klara. |
+
+Stöd och begränsningar finns i [tekniska dossiern](technical-dossier.md), [fasmatrisen](history-environment.md), [QA och distribution](qa-performance-distribution.md) och [källregistret](sources.md). Riskerna är öppna till dess att deras observerbara kontroll genomförts; research kan stänga en faktalucka men inte godkänna en ännu oskriven implementation.
