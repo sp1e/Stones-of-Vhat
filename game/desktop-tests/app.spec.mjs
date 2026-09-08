@@ -37,15 +37,26 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
   app.process().stderr?.on('data', bytes => process.stderr.write(bytes));
   try {
     let page = await app.firstWindow();
-    const resourceErrors = [];
-    page.on('pageerror', error => resourceErrors.push(error.message));
-    page.on('requestfailed', request => resourceErrors.push(request.url() + ': ' + request.failure()?.errorText));
-    page.on('response', response => { if (response.status() >= 400) resourceErrors.push(response.url() + ': ' + response.status()); });
-    page.on('console', message => { if (message.type() === 'error') resourceErrors.push(message.text()); });
+    function observeErrors(target) {
+      const errors = [];
+      const listeners = {
+        pageerror: error => errors.push(error.message),
+        requestfailed: request => errors.push(request.url() + ': ' + request.failure()?.errorText),
+        response: response => { if (response.status() >= 400) errors.push(response.url() + ': ' + response.status()); },
+        console: message => { if (message.type() === 'error') errors.push(message.text()); },
+      };
+      for (const [event, listener] of Object.entries(listeners)) target.on(event, listener);
+      return { errors, stop: () => { for (const [event, listener] of Object.entries(listeners)) target.off(event, listener); } };
+    }
+    let observed = observeErrors(page);
+    // firstWindow can precede the shell's initial loadURL completion. Reloading
+    // immediately cancels that promise and triggers the real startup-error path.
+    await page.waitForURL('app://game/', { waitUntil: 'load' });
+    await ready(page);
     // Observe a complete renderer load, including resources requested before firstWindow resolved.
     await page.reload();
     await ready(page);
-    assert.deepEqual(resourceErrors, [], 'initial renderer must load without resource or CSP errors');
+    assert.deepEqual(observed.errors, [], 'initial renderer must load without resource or CSP errors');
     assert.equal(page.url(), 'app://game/');
     assert.deepEqual(await app.evaluate(({ app, session }) => ({ userData: app.getPath('userData'), sessionData: app.getPath('sessionData'), storage: session.defaultSession.getStoragePath() })), { userData: profile, sessionData: profile, storage: profile });
     assert.equal(await page.locator('canvas').count(), 1);
@@ -63,9 +74,33 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
     assert.deepEqual(settings, { sandbox: true, nodeIntegration: false, contextIsolation: true, webSecurity: true });
     assert.equal(await page.evaluate(() => window.open('about:blank')), null);
     assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
-    assert.equal(await page.evaluate(() => { try { new Function('return 1')(); return 'allowed'; } catch { return 'blocked'; } }), 'blocked');
+    // These probes intentionally emit CSP/network errors; keep them separate
+    // from the clean-load and gameplay/relaunch acceptance phases.
+    observed.stop();
+    // Inspector evaluation permits unsafe eval by default, even with the real
+    // page CSP enabled. Explicitly opt out of that debugger-only bypass.
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      const positive = await cdp.send('Runtime.evaluate', { expression: '1 + 1', returnByValue: true, allowUnsafeEvalBlockedByCSP: false });
+      assert.equal(positive.exceptionDetails, undefined);
+      assert.equal(positive.result.value, 2);
+      const probe = await cdp.send('Runtime.evaluate', {
+        expression: "(() => { try { new Function('return 1')(); return 'allowed'; } catch (error) { return error.name; } })()",
+        returnByValue: true, allowUnsafeEvalBlockedByCSP: false,
+      });
+      assert.equal(probe.exceptionDetails, undefined);
+      assert.equal(probe.result.value, 'EvalError');
+    } finally {
+      await cdp.detach();
+    }
     assert.equal(await page.evaluate(async () => { try { await fetch('https://example.com/'); return 'allowed'; } catch { return 'blocked'; } }), 'blocked');
     assert.equal(await page.evaluate(async () => (await fetch('app://game/package.json')).status), 404);
+    // Drain the negative-probe document, then observe a fresh load and gameplay.
+    await page.reload();
+    await ready(page);
+    observed = observeErrors(page);
+    await page.reload();
+    await ready(page);
     await page.locator('#controls summary').click();
     await page.locator('#gore').uncheck();
     await page.screenshot({ path: join(root, '.playtest', 'desktop-exe-menu.png') });
@@ -98,12 +133,20 @@ test('packaged Windows app renders offline, is sandboxed, and persists preferenc
     await page.screenshot({ path: join(root, '.playtest', 'desktop-exe-game.png') });
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => document.pointerLockElement === null && document.querySelector('#crosshair').hidden && !document.querySelector('#panel').hidden);
+    assert.deepEqual(observed.errors, [], 'gameplay and pause must not emit runtime or resource errors');
+    observed.stop();
     await app.close();
     app = await launch();
     page = await app.firstWindow();
+    observed = observeErrors(page);
+    await page.waitForURL('app://game/', { waitUntil: 'load' });
+    await ready(page);
+    await page.reload();
     await ready(page);
     assert.equal(await page.locator('#gore').isChecked(), false);
     assert.equal(page.url(), 'app://game/');
+    assert.deepEqual(observed.errors, [], 'relaunch must load without runtime or resource errors');
+    observed.stop();
   } finally {
     await app?.close();
   }

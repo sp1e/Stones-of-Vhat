@@ -1,6 +1,6 @@
 # Game1 team state
 
-Updated 2026-09-07. Coordinator owns this file.
+Updated 2026-09-08. Coordinator owns this file. Latest Windows acceptance is in the dated section at the end; older chronological entries retain their original status.
 
 ## Outcome and scope
 
@@ -19,7 +19,7 @@ Branch: codex/vadstena-runtime-foundation
 | Real courtyard/capsule physics | physical_courtyard (gpt-6-astra/high) | Complete 6389f15, 31 tests pass; physics_quality independently confirms its important finding resolved and approves integration |
 | Playable Three view/input/menu | playable_courtyard (gpt-5.6-sol/high) | Complete 6d92691 + BFCache fix 7ca88a0; 31 native, 5 browser tests and production build pass |
 | Integrated browser QA and visual checks | Coordinator, browser_spec (gpt-5.6-terra/high), browser_quality (gpt-6-astra/high) | Spec PASS; quality P2 resolved and independently rechecked with real BFCache; no remaining important findings |
-| Windows portable .exe packaging | windows_portable (gpt-6-astra/high); prior read-only research complete | Shell, build config and tests committed 17309ce on 2026-09-07. Three source defects fixed and verified in code. Unpacked exe built but never launched; portable artifact never built. Launch acceptance is the open item |
+| Windows portable .exe packaging | Coordinator; windows_acceptance_review (gpt-6-astra/high), read-only review | Existing unpacked exe accepted twice on 2026-09-08 after harness-only fixes; actual AMD hardware rendering, pointer lock, movement, pause and isolated-profile persistence. Portable artifact, ordinary/default-profile launch and FPS remain unverified |
 
 ## Team workflow decisions
 
@@ -84,3 +84,17 @@ Publishing blocker verified on 2026-09-07 against the current website configurat
 Backup posture, measured rather than assumed. No git remote is configured: `git remote -v` returns nothing. An earlier draft of this entry concluded from that alone that no off-machine copy exists. That was wrong. This is a linked worktree whose `.git` file points at `Dokument/Game1/.git/worktrees/runtime-foundation`, so the object database lives inside the OneDrive-synced Documents folder, and every file under that `.git` carries a `ReparsePoint` attribute — the OneDrive Files On-Demand marker. The repository is therefore replicated to OneDrive. It measures 906 KB with 310 objects across 2 packs, and `git fsck` reports no errors.
 
 That is a real off-machine copy, but it is not a remote and should not be treated as one. OneDrive replicating a live `.git` is a known source of corruption and sync conflicts when two processes touch the object database, it offers no branch protection or review flow, and file-version retention is not a substitute for reachable history. Whether to add an actual remote is the user's decision and remains open; it has been raised, not resolved.
+
+## 2026-09-08: authorized unpacked Windows acceptance
+
+Simon explicitly approved starting/testing the existing Windows build without Defender-setting changes and with immediate stop on a new warning. Coordinator verified the existing exe SHA256 against the recorded build (`386e91ab…c6d2d`), and checked packaged main/policy/renderer bytes against local desktop inputs. No rebuild, restoration, exclusion, signing, publication or game-code change was performed.
+
+Allocation under codex-team-workflow: independent acceptance review -> Astra/high -> security/test-lifecycle reasoning while coordinator owns execution and documentation -> reassess on concrete harness defects. Reviewer remained read-only. Game-playtest required actual screenshot inspection, fulfilled for the packaged menu and active courtyard; PC-only scope retained.
+
+The first run exposed a harness race: immediate reload after firstWindow cancelled the shell's pending loadURL with ERR_ABORTED. The second exposed an invalid CSP probe: debugger evaluation permits unsafe eval by default. Only `game/desktop-tests/app.spec.mjs` changed: strict app-URL/load readiness before reload, CDP evaluation with debugger CSP bypass disabled and positive control, and phase-separated error checks through gameplay and relaunch. Independent review approved the final diff. These were test corrections, not changes to the packaged application.
+
+Two consecutive corrected runs passed **2/2 desktop tests**, ending 14:55:04 and 14:56:21 Europe/Stockholm. Strict types and **32/32 module/configuration tests** passed again. Actual renderer: AMD Radeon(TM) 860M Graphics via ANGLE Direct3D11. This establishes hardware rendering in the test, not an FPS result. Browser tests were not rerun in this increment.
+
+Task-scoped monitor polled Defender Operational events during each run, with stop-on-detection and executable-disappearance checks. No new matching event was observed. User's earlier allowance means absence of a new detection is not a clean-scan result or a false-positive verdict. No Vadstena process is intentionally left running. Full evidence and remaining limits: [Windows results](2026-09-05-windows-portable-results.md).
+
+Next Windows work: build/validate the actual single-file portable artifact, ordinary startup and default-profile behavior, retaining the security boundary. M1B magic remains the next gameplay increment. Neither the full chapter nor all Windows distribution acceptance is complete. Research handover: `docs/research/2026-09-08-deep-research-handover.md`.

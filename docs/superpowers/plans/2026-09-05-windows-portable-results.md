@@ -132,8 +132,50 @@ The gate this document was waiting on — the coordinator's independent PE compa
 
 The `.text` digest reproduces the base measurement recorded on 2026-09-05 exactly, from an independent parse. Whole-file digests are `386e91ab57d7162c5809a2e681ce1185891083462d3d5ed506ab5e03c27c6d2d` at 246,202,368 bytes for the generated executable and `07b043bf9b0a0ac14a82fac0b612b7b7ed13cde727d706d74e41a45278ab51f1` at 246,201,856 bytes for the base. The whole-file delta of +512 bytes is fully accounted for by `.rsrc` alone — the resource section electron-builder rewrites for icon, product name and version metadata. No other section changed by a single byte.
 
-Conclusion and its limit: electron-builder introduced no executable code of its own, so a Trojan classification of this file's machine code is not supported by its contents. That is **not** a determination that the Defender detection was false. Heuristic detections on large unsigned executables are not refuted by provenance, the base runtime itself is `NotSigned`, and no authorized security review has been performed. The executable remains unlaunched pending the user's decision.
+Conclusion and its limit (wording corrected 2026-09-08): the measured PE sections match the base except `.rsrc`. This is provenance evidence for those bytes, not an assessment of complete application behavior, ASAR contents or the validity of Defender's classification. The base runtime is `NotSigned`, and no security clearance or false-positive determination is established. At this 2026-09-07 checkpoint the executable remained unlaunched pending the user's decision; see the subsequent acceptance below.
 
 Verification counts re-measured the same day, from `game/`: `npm run typecheck` exit 0; `npm test` 32/32 pass; `npm run test:browser` 6/6 pass. Earlier "31 native" and "five browser" figures in this and other documents predate `tests/desktopPolicy.test.mjs` and the watcher regression test.
 
 The desktop increment was untracked until this date and is now committed as 17309ce, with generated artefacts confirmed excluded by `git check-ignore`.
+
+## 2026-09-08: controlled unpacked acceptance — PASS, with distribution limits
+
+Simon explicitly approved testing the existing executable, with no Defender changes and immediate stop on a new warning. Existing build only: no game code, desktop shell, executable or ASAR was rebuilt/changed.
+
+### Preflight and monitoring
+
+- Executable: `game/release/win-unpacked/Vadstena.exe`, 246,202,368 bytes; SHA256 `386e91ab57d7162c5809a2e681ce1185891083462d3d5ed506ab5e03c27c6d2d` reproduced locally.
+- Packaged `main.mjs`, `policy.mjs`, renderer HTML and both bundled asset files matched current desktop inputs byte-for-byte by SHA256.
+- Preflight Defender events matched only the recorded 2026-09-05 incident. A task-local PowerShell supervisor observed new Operational records during each test, checked target existence, and would stop the exact task-owned executable and test runner on matching detection/remediation events. It did not change any protection setting.
+- No matching new Defender event was observed during the four attempts. This is a scoped log observation, not a scan or security clearance; the user's earlier allowance is a further reason not to infer safety from silence.
+- Supervisor and raw output remain ignored under `game/.playtest/`. The first supervisor run did not retain its process handle and emitted an empty exit code despite failed test text; that wrapper status is invalid. The wrapper was corrected to retain the handle and fail closed on a missing code. All acceptance claims use explicit test counts plus final exit 0 from corrected runs.
+
+### Observed RED and harness corrections
+
+1. 14:51:51 attempt: archive PASS, runtime FAIL at immediate `page.reload` with `ERR_ABORTED`. The reload cancelled the shell's first `loadURL`, reaching its startup-error handler. The harness now waits for `app://game/` with load completion and readiness before reload, including on relaunch.
+2. 14:53:34 attempt: app rendered using AMD hardware, but the `page.evaluate(new Function)` security assertion returned `allowed`. The debugger can bypass CSP for evaluation; this was not evidence that the ordinary page policy allowed eval. The test now uses `Runtime.evaluate` with `allowUnsafeEvalBlockedByCSP: false`, checks a positive arithmetic control and requires `EvalError`. Semantics checked against installed Playwright protocol typings and [official Chrome DevTools Protocol documentation](https://chromedevtools.github.io/devtools-protocol/tot/Runtime/#method-evaluate).
+3. Independent review also identified incomplete error observation after startup. The corrected test observes clean renderer loads, gameplay/pause and process relaunch, while isolating the deliberately rejected eval/network/404 probes. No app policy was relaxed to make the tests pass.
+
+### GREEN evidence
+
+| Run, Europe/Stockholm | Result | Raw output relative to `game/` |
+| --- | --- | --- |
+| 14:54:45–14:55:04 | Desktop 2/2 PASS, supervisor exit 0 | `.playtest/desktop-20260908-145445.stdout.log` and `.stderr.log` |
+| 14:55:48–14:56:21 | Repeat desktop 2/2 PASS, supervisor exit 0 | `.playtest/desktop-20260908-145548.stdout.log` and `.stderr.log` |
+| Same increment | `npm run check`: strict typecheck and 32/32 tests PASS | Command output recorded in Codex task |
+
+Passed behavior: archive excludes runtime node_modules; fresh missing test-profile directory is created; one canvas loads through local `app://game/`; effective sandbox/contextIsolation/webSecurity are true and nodeIntegration false; renderer require/process/dev diagnostics are unavailable; popup, CSP eval, outside HTTPS fetch and manifest protocol access are denied; a trusted Start click obtains real pointer lock; W changes the settled rendered view; Escape returns pause and releases lock; saved gore OFF survives full app close/relaunch. Fresh profile gore ON was checked before the test changed it.
+
+Actual GPU diagnostic: `Google Inc. (AMD)` / `ANGLE (AMD, AMD Radeon(TM) 860M Graphics (0x00001114) Direct3D11 vs_5_0 ps_5_0, D3D11)`.
+
+Coordinator visually inspected `.playtest/desktop-exe-menu.png` and `desktop-exe-game.png` from the successful run: readable left-side paused menu, unobstructed central crosshair in active play, visible courtyard props/stairs/ramp and rendered shadows. These are the technical courtyard, not historical final environment assets. The unchecked gore box in the menu screenshot is the deliberate persistence test, not a changed default.
+
+Independent read-only reviewer `windows_acceptance_review` (Astra/high) approved the final harness corrections, including URL readiness, CSP probe and phase-based error observation. Review also narrowed the earlier PE conclusion above.
+
+### Remaining limits
+
+- The accepted artifact is the existing **unpacked** app plus its supporting files, not a single-file portable release. No portable wrapper was built/tested here.
+- Test launches use an isolated `--user-data-dir` and permit `--enable-unsafe-swiftshader`; observed rendering nevertheless selected AMD hardware. Ordinary launch without test flags, default `%APPDATA%/Vadstena`, existing profiles/upgrades and portable extraction/cleanup are not accepted by this suite.
+- Local packaged resources and denied external fetch were tested; the host was not disconnected from the network. No FPS, performance budget, exhaustive controls/collision playthrough or OS sandbox penetration test is claimed.
+- No renewed detection observed does not resolve the original Defender classification. No security settings were changed and no quarantine item was restored.
+- Browser suite and full chapter acceptance remain separate. Magi, NPCs, ragdolls/gore graphics and historical chapter content are not delivered by this Windows test.
