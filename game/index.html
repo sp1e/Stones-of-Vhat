@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#17201e" />
     <link rel="icon" href="data:," />
-    <title>Vadstena · Teknikgård M1A</title>
+    <title>Vadstena · Grip M1B-1</title>
   </head>
   <body>
     <main id="viewport" aria-label="Spelvy för teknikgården"></main>
     <div id="hud" aria-hidden="true">
       <p class="brand">VADSTENA · DEN ÅTTONDE KLANGEN</p>
-      <p id="hint">TEKNIKGÅRD / M1A</p>
+      <p id="hint">GRIP / M1B-1</p>
     </div>
     <div id="crosshair" hidden aria-hidden="true"></div>
     <section id="panel" aria-labelledby="panel-title">
       <p class="eyebrow">FYSIKPROTOTYP · PC</p>
       <h1 id="panel-title">Tyngden före klangen.</h1>
-      <p class="intro">En stilla gård. Sten under fötterna. Ännu har ingenting vaknat.</p>
+      <p class="intro">Lyft sten, vrid trä och känn hur gårdens föremål svarar. Ett första prov av Grip.</p>
       <p id="status" role="status" aria-live="polite">Gården förbereds …</p>
       <div class="actions">
         <button id="start" type="button" disabled>Gå in i gården →</button>
@@ -30,11 +30,17 @@
           <dl class="control-list">
             <div><dt>WASD</dt><dd>Rör dig</dd></div>
             <div><dt>Mus</dt><dd>Se dig omkring</dd></div>
+            <div><dt>Höger mus</dt><dd>Håll för Grip. Släpp greppet.</dd></div>
+            <div><dt>Vänster mus</dt><dd>Kasta det hållna objektet</dd></div>
+            <div><dt>R + mus</dt><dd>Rotera det hållna objektet</dd></div>
+            <div><dt>Mushjul</dt><dd>Ändra avståndet</dd></div>
             <div><dt>Shift</dt><dd>Spring</dd></div>
             <div><dt>Space</dt><dd>Hoppa</dd></div>
             <div><dt>C</dt><dd>Huka</dd></div>
             <div><dt>Esc / Tab</dt><dd>Pausa</dd></div>
           </dl>
+          <label class="check-row" for="grip-toggle"><input id="grip-toggle" type="checkbox" /><span>Växla Grip med högerklick</span></label>
+          <p class="fine-print">Grip-valet gäller den här sessionen. I växelläge släpper nästa högerklick objektet. Paus släpper alltid.</p>
           <label class="check-row" for="gore"><input id="gore" type="checkbox" checked /><span>Gore aktiverat</span></label>
           <p class="fine-print">På som standard och sparas lokalt. Prototypen har ännu inga NPC:er, strider eller gore-effekter.</p>
           <p id="storage-status" class="fine-print" role="status"></p>

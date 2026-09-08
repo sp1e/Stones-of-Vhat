@@ -19,6 +19,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px 
 .brand, #hint { position: absolute; margin: 0; color: rgb(242 234 217 / 78%); font-size: 0.67rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; text-shadow: 0 1px 8px rgb(0 0 0 / 55%); }
 .brand { top: 1.25rem; left: 1.35rem; }
 #hint { top: 1.25rem; right: 1.35rem; color: var(--brass-bright); }
+#hint { max-width: min(38rem, 55vw); text-align: right; line-height: 1.6; }
 #crosshair { position: fixed; z-index: 3; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border: 1px solid rgb(255 247 225 / 90%); border-radius: 50%; box-shadow: 0 0 0 1px rgb(0 0 0 / 35%); pointer-events: none; }
 #panel { position: fixed; z-index: 4; top: 50%; left: clamp(1rem, 5vw, 5rem); width: min(460px, calc(100vw - 2rem)); max-height: 80dvh; overflow-y: auto; transform: translateY(-50%); padding: clamp(1.35rem, 3vw, 2.4rem); border: 1px solid var(--line); background: linear-gradient(145deg, rgb(23 32 30 / 96%), rgb(16 23 21 / 92%)); box-shadow: 0 28px 70px rgb(0 0 0 / 38%); }
 #panel[hidden], #crosshair[hidden], #reload[hidden] { display: none; }

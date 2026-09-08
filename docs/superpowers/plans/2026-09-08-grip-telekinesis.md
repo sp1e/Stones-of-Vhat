@@ -1,8 +1,8 @@
 # Grip Telekinesis Implementation Plan
 
-**Status:** Resumed; core Tasks 1–2 implemented and 51 native tests pass. Input/browser/render production awaits final core quality recheck.
+**Status:** Complete PC browser Grip slice. Strict TypeScript, 57 native tests, final nine-case browser suite, production build and visual inspection passed. Independent final spec review passed and quality review approved without actionable findings. This plan accompanies the browser-stage delivery commit; core foundation is `1bb5bfe`.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. The coordinator owns independent spec and quality review; the assigned implementation worker executes inline without further delegation. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. The coordinator owns independent spec and quality review; the assigned implementation worker executes inline without further delegation. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Deliver M1B-1, playable physical Grip (acquire, lift/pull, rotate, place/release, throw) in the existing PC courtyard browser prototype.
 
@@ -40,7 +40,7 @@ The player is the existing kinematic capsule; held props always remain dynamic. 
 
 ## Task 1: Real-physics Grip selection and control
 
-- [ ] **Step 1: Add the initial failing real-physics tests to `game/tests/grip.test.mjs`.**
+- [x] **Step 1: Add the initial failing real-physics tests to `game/tests/grip.test.mjs`.**
 
 ```js
 import assert from 'node:assert/strict';
@@ -93,6 +93,29 @@ test('Grip cannot select through a fixed wall or select overweight or out-of-ran
   ]) await fixture(layout, yard => {
     yard.step(idle, command({ ...aim(yard), acquire: true }));
     assert.equal(yard.snapshot().grip?.heldId, null);
+  });
+});
+
+test('Grip hover metadata follows aim and clears on input loss, invalid input and explicit release', async () => {
+  await fixture([prop()], yard => {
+    const hover = () => yard.step(idle, command({ ...aim(yard), wanted: false }));
+    hover();
+    assert.equal(yard.snapshot().grip.status, 'ready');
+    assert.equal(yard.snapshot().grip.candidateId, 'prop');
+    yard.step(idle, command({ yaw: Math.PI }));
+    assert.equal(yard.snapshot().grip.status, 'idle');
+    assert.equal(yard.snapshot().grip.candidateId, null);
+    for (const clear of [() => yard.step(idle), () => yard.step(idle, command({ yaw: NaN })), () => yard.releaseGrip()]) {
+      hover();
+      assert.equal(yard.snapshot().grip.candidateId, 'prop');
+      clear();
+      assert.equal(yard.snapshot().grip.candidateId, null);
+    }
+    acquire(yard);
+    yard.step(idle, command({ ...aim(yard), wanted: false }));
+    assert.equal(yard.snapshot().grip.heldId, null);
+    assert.equal(yard.snapshot().grip.status, 'ready');
+    assert.equal(yard.snapshot().grip.candidateId, 'prop', 'button-up retains the current valid hover');
   });
 });
 
@@ -163,9 +186,9 @@ test('ten Grip world lifecycles retain body/collider/joint counts and destroy cl
 });
 ```
 
-- [ ] **Step 2: Observe RED.** Run `rtk node --test tests/grip.test.mjs`. Expected behavioral assertion: aimed body must acquire (`undefined !== 'prop'`); fixed-wall/mass test expects `null` but no Grip snapshot exists. Missing `releaseGrip` must not be the only observed failure.
+- [x] **Step 2: Observe RED.** Run `rtk node --test tests/grip.test.mjs`. Expected behavioral assertion: aimed body must acquire (`undefined !== 'prop'`); fixed-wall/mass test expects `null` but no Grip snapshot exists. Missing `releaseGrip` must not be the only observed failure.
 
-- [ ] **Step 3: Add `game/src/physics/grip.ts` with the following complete controller.**
+- [x] **Step 3: Add `game/src/physics/grip.ts` with the following complete controller.**
 
 ```ts
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -173,6 +196,8 @@ import type { Rotation, Vec3 } from '../content/yardLayout.ts';
 import { FIXED_DT as dt } from '../runtime/fixedStep.ts';
 
 export type GripCommand = {
+  // One fixed-tick sample: wanted is a level; acquire and throwPressed are
+  // consumed event pulses. Adjacent true samples can represent distinct clicks.
   wanted: boolean; acquire: boolean; throwPressed: boolean;
   yaw: number; pitch: number; distanceDelta: number;
   rotateYaw: number; rotatePitch: number;
@@ -219,8 +244,6 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
   let held: { id: string; body: RAPIER.RigidBody; rotation: Rotation; radius: number; target: Vec3; targetVelocity: Vec3 } | null = null;
   let state: GripSnapshot = { status: 'idle', candidateId: null, heldId: null, mass: null,
     distance: 3, target: null, impulse: 0, torqueImpulse: 0, joints: 0, contacts: 0, reason: 'none' };
-  let acquireDown = false;
-  let throwDown = false;
   const release = (status: GripSnapshot['status'] = 'released', reason: GripSnapshot['reason'] = 'released', keepHover = false) => {
     held = null;
     state = { ...state, status, reason, candidateId: keepHover ? state.candidateId : null,
@@ -230,12 +253,8 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     const valid = command && [command.yaw, command.pitch, command.distanceDelta, command.rotateYaw, command.rotatePitch, eye.x, eye.y, eye.z].every(Number.isFinite)
       && [command.wanted, command.acquire, command.throwPressed].every(value => typeof value === 'boolean');
     if (!valid) {
-      release(command ? 'invalid' : 'idle', command ? 'input' : 'released'); acquireDown = false; throwDown = false; return;
+      release(command ? 'invalid' : 'idle', command ? 'input' : 'released'); return;
     }
-    const acquireEdge = command.acquire && !acquireDown;
-    const throwEdge = command.throwPressed && !throwDown;
-    acquireDown = command.acquire;
-    throwDown = command.throwPressed;
     const direction = { x: -Math.sin(command.yaw) * Math.cos(command.pitch), y: Math.sin(command.pitch), z: -Math.cos(command.yaw) * Math.cos(command.pitch) };
     state.impulse = 0; state.torqueImpulse = 0; state.candidateId = null;
     const pick = world.castRay(new RAPIER.Ray(eye, direction), GRIP_LIMITS.range, true,
@@ -244,7 +263,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     const entry = candidate && [...bodies].find(([, body]) => body.handle === candidate.handle);
     if (entry && candidate?.isDynamic() && candidate.mass() > 0 && candidate.mass() <= GRIP_LIMITS.mass) state.candidateId = entry[0];
     if (!command.wanted) release('idle', 'released', true);
-    if (!held && command.wanted && acquireEdge && entry && state.candidateId) {
+    if (!held && command.wanted && command.acquire && entry && state.candidateId) {
       const body = entry[1];
       const collider = body.collider(0);
       // Current authored props have one centered collider. Bounding radius is
@@ -297,7 +316,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
       held.targetVelocity = { x: 0, y: 0, z: 0 };
     }
     held.target = { ...target };
-    if (throwEdge) {
+    if (command.throwPressed) {
       body.applyImpulse(scale(direction, Math.min(mass * GRIP_LIMITS.throwSpeed, GRIP_LIMITS.throwImpulse)), true);
       release('thrown'); return;
     }
@@ -321,7 +340,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
   }
   return {
     step,
-    release(): void { release(); acquireDown = false; throwDown = false; },
+    release(): void { release(); },
     snapshot(): GripSnapshot {
       let contacts = 0;
       if (held) {
@@ -339,7 +358,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
 }
 ```
 
-- [ ] **Step 4: Integrate controller ownership in `game/src/physics/yard.ts`.** Add imports:
+- [x] **Step 4: Integrate controller ownership in `game/src/physics/yard.ts`.** Add imports:
 
 ```ts
 import { createGrip } from './grip.ts';
@@ -386,11 +405,11 @@ Replace the `BodyPose` return inside `snapshot()` with:
 
 Add `grip: grip.snapshot(),` next to the existing snapshot `player` field. Add `grip.release();` before `destroyed = true;` inside `destroy()`. Existing `counts()` shape remains unchanged to preserve M1A lifecycle assertions.
 
-- [ ] **Step 5: Run GREEN and static checking.** Run `rtk node --test tests/grip.test.mjs`, then `rtk npm run check`. Correct actual API/type issues against the installed declarations. Expected six new tests pass alongside all 32 baseline tests. Do not weaken motion assertions to accommodate instability. Commit only after Task 2 safety additions pass and coordinator permits the owned-file commit.
+- [x] **Step 5: Run GREEN and static checking.** Run `rtk node --test tests/grip.test.mjs`, then `rtk npm run check`. Correct actual API/type issues against the installed declarations. Expected six new tests pass alongside all 32 baseline tests. Do not weaken motion assertions to accommodate instability. Commit only after Task 2 safety additions pass and coordinator permits the owned-file commit.
 
 ## Task 2: Obstacle, plank, range and release safety
 
-- [ ] **Step 1: Append these executable behavioral tests to `game/tests/grip.test.mjs` before any safety adjustments.**
+- [x] **Step 1: Append these executable behavioral tests to `game/tests/grip.test.mjs` before any safety adjustments.**
 
 ```js
 test('Grip pulls the real plank off the floor and rotates without unstable angular speed', async () => {
@@ -459,7 +478,7 @@ test('release has no latent throw or automatic reacquisition and restarts begin 
 });
 ```
 
-- [ ] **Step 2: Append the research and review safety fixtures below before running the new tests.**
+- [x] **Step 2: Append the research and review safety fixtures below before running the new tests.**
 
 ```js
 test('a sleeping settled barrel lifts with its real cylinder collider', async () => {
@@ -637,13 +656,13 @@ test('held prop collides with a step while lowering and walking never drags it t
 });
 ```
 
-- [ ] **Step 3: Run `rtk node --test tests/grip.test.mjs`.** If these already pass, retain them as acceptance regressions; they are not evidence of a new RED. If they fail, record the failing behavior before changing the implementation. Real floor cast behavior and anisotropic inertia come from independently checked Rapier 0.20.0 APIs; do not switch back to sphere sweeps or scalar mass torque. Adjust a physically misplaced fixture only when its geometry demonstrably misses the named condition, and preserve the assertion that contact occurs while still held. Do not pass an obstruction test by letting an unrelated early release bypass contact.
+- [x] **Step 3: Run `rtk node --test tests/grip.test.mjs`.** If these already pass, retain them as acceptance regressions; they are not evidence of a new RED. If they fail, record the failing behavior before changing the implementation. Real floor cast behavior and anisotropic inertia come from independently checked Rapier 0.20.0 APIs; do not switch back to sphere sweeps or scalar mass torque. Adjust a physically misplaced fixture only when its geometry demonstrably misses the named condition, and preserve the assertion that contact occurs while still held. Do not pass an obstruction test by letting an unrelated early release bypass contact.
 
-- [ ] **Step 4: Run `rtk npm run check`.** Expect 50 native tests when Task 1 and 2 are complete. Record exact observed counts if test subdivision changes. The endpoint shape sweep does not prove continuous rotational swept clearance; bounded torque and Rapier contacts enforce physical rotation. Center-to-eye visibility is deliberately conservative, including when only one end of the plank is visible. Render-grouping equality is a same-runtime check, not cross-platform bit-identical replay.
+- [x] **Step 4: Run `rtk npm run check`.** Expect 51 native tests when Task 1 and 2 are complete. Record exact observed counts if test subdivision changes. The endpoint shape sweep does not prove continuous rotational swept clearance; bounded torque and Rapier contacts enforce physical rotation. Center-to-eye visibility is deliberately conservative, including when only one end of the plank is visible. Render-grouping equality is a same-runtime check, not cross-platform bit-identical replay.
 
 ## Task 3: Input edge buffer and session toggle
 
-- [ ] **Step 1: Create `game/tests/gripInput.test.mjs`.**
+- [x] **Step 1: Create `game/tests/gripInput.test.mjs`.**
 
 ```js
 import assert from 'node:assert/strict';
@@ -657,6 +676,7 @@ test('hold input acquires once, throws once and releases on button up', () => {
   const input = setup();
   input.button(2, true);
   assert.equal(input.sample(0, 0).acquire, true);
+  input.setHolding(true);
   assert.equal(input.sample(0, 0).acquire, false);
   input.button(0, true);
   assert.equal(input.sample(0, 0).throwPressed, true);
@@ -707,11 +727,58 @@ test('failed pickup leaves camera free and a thrown toggle grip can acquire on t
   input.button(2, true); input.button(2, false);
   assert.equal(input.sample(0, 0).acquire, true);
 });
+
+test('primary pressed before a confirmed acquisition does not queue a delayed throw', () => {
+  const input = setup();
+  input.button(2, true);
+  input.button(0, true);
+  const acquisition = input.sample(0, 0);
+  assert.equal(acquisition.acquire, true);
+  assert.equal(acquisition.throwPressed, false);
+  input.setHolding(true);
+  assert.equal(input.sample(0, 0).throwPressed, false);
+  input.button(0, false); input.button(0, true);
+  assert.equal(input.sample(0, 0).throwPressed, true);
+});
+
+test('distinct consecutive-tick clicks can acquire after a failed pickup in hold and toggle modes', async () => {
+  const { createYard } = await import('../src/physics/yard.ts');
+  const idle = { right: 0, forward: 0, yaw: 0, sprint: false, crouch: false, jump: false };
+  for (const toggle of [false, true]) {
+    const yard = await createYard({ layout: [
+      { id: 'floor', shape: { kind: 'box', size: [20, 1, 20] }, position: { x: 0, y: -0.5, z: 0 }, color: '#777777' },
+      { id: 'prop', shape: { kind: 'box', size: [0.6, 0.6, 0.6] }, position: { x: 0, y: 0.31, z: 4 }, mass: 2, color: '#777777' },
+    ] });
+    try {
+      for (let tick = 0; tick < 60; tick++) yard.step(idle);
+      const input = setup(); input.setToggle(toggle);
+      input.button(2, true);
+      const missed = input.sample(Math.PI, 0);
+      assert.equal(missed.acquire, true);
+      yard.step(idle, missed);
+      assert.equal(yard.snapshot().grip.heldId, null);
+      input.setHolding(false);
+      input.button(2, false); input.button(2, true);
+      const state = yard.snapshot();
+      const prop = state.bodies.find(body => body.id === 'prop').position;
+      const pitch = Math.atan2(prop.y - state.player.eye.y, state.player.eye.z - prop.z);
+      const nextClick = input.sample(0, pitch);
+      assert.equal(nextClick.acquire, true, 'next command represents a distinct physical click');
+      yard.step(idle, nextClick);
+      assert.equal(yard.snapshot().grip.heldId, 'prop', `consecutive click must acquire in ${toggle ? 'toggle' : 'hold'} mode`);
+      input.setHolding(true);
+      const held = input.sample(0, pitch);
+      assert.equal(held.acquire, false, 'continued button holding emits no acquisition pulse');
+      yard.step(idle, held);
+      assert.equal(yard.snapshot().grip.heldId, 'prop');
+    } finally { yard.destroy(); }
+  }
+});
 ```
 
-- [ ] **Step 2: Observe RED with `rtk node --test tests/gripInput.test.mjs`.** Expected assertion: `createGripInput` must be a function.
+- [x] **Step 2: Observe RED with `rtk node --test tests/gripInput.test.mjs`.** Expected assertion: `createGripInput` must be a function.
 
-- [ ] **Step 3: Add `game/src/input/gripInput.ts`.**
+- [x] **Step 3: Add `game/src/input/gripInput.ts`.**
 
 ```ts
 import type { GripCommand } from '../physics/grip.ts';
@@ -737,7 +804,7 @@ export function createGripInput() {
       if (!active || buttons.has(button)) return;
       buttons.add(button);
       if (button === 2) { wanted = toggle ? !wanted : true; acquire ||= wanted; }
-      if (button === 0 && wanted) throwPressed = true;
+      if (button === 0 && holding) throwPressed = true;
     },
     rotate(value: boolean): void { rotating = active && value; },
     motion(x: number, y: number): boolean {
@@ -758,9 +825,9 @@ export function createGripInput() {
 }
 ```
 
-- [ ] **Step 4: Run `rtk node --test tests/gripInput.test.mjs`.** Expected 4/4 pass.
+- [x] **Step 4: Run `rtk node --test tests/gripInput.test.mjs`.** Expected 5/5 pass.
 
-- [ ] **Step 5: Integrate in `game/src/input/browserInput.ts`.** Add `import { createGripInput } from './gripInput.ts';`, create `const grip = createGripInput();` beside `actions`. Add the following branches before `MOVEMENT_KEYS` lookup in the event handlers:
+- [x] **Step 5: Integrate in `game/src/input/browserInput.ts`.** Add `import { createGripInput } from './gripInput.ts';`, create `const grip = createGripInput();` beside `actions`. Add the following branches before `MOVEMENT_KEYS` lookup in the event handlers:
 
 ```ts
     // keydown, after pause-key handling
@@ -801,7 +868,7 @@ DOM integration stays pending GREEN until the real browser test in Task 5 is add
 
 ## Task 4: Real browser RED, lifecycle wiring and compact presentation
 
-- [ ] **Step 1: Append this test to `game/browser/yard.spec.mjs` before browser/main/render/HTML production changes.** It uses the existing Vite/Chromium fixture and failure observer. The only page state it reads is detached diagnostics; aiming and actions use actual Playwright mouse/keyboard events.
+- [x] **Step 1: Append this test to `game/browser/yard.spec.mjs` before browser/main/render/HTML production changes.** It uses the existing Vite/Chromium fixture and failure observer. The only page state it reads is detached diagnostics; aiming and actions use actual Playwright mouse/keyboard events.
 
 ```js
 test('physical Grip supports hold, wheel, rotation, throw, toggle recovery and pause/restart', { timeout: 90_000 }, async () => {
@@ -925,9 +992,9 @@ test('physical Grip supports hold, wheel, rotation, throw, toggle recovery and p
 });
 ```
 
-- [ ] **Step 2: Run `rtk node --test --test-name-pattern="physical Grip" browser/yard.spec.mjs`.** Expected RED at the initial detached Grip diagnostics assertion. A startup/import error is not sufficient. Record the observed assertion before integration.
+- [x] **Step 2: Run `rtk node --test --test-name-pattern="physical Grip" browser/yard.spec.mjs`.** Expected RED at the initial detached Grip diagnostics assertion. A startup/import error is not sufficient. Record the observed assertion before integration.
 
-- [ ] **Step 3: Edit `game/src/main.ts` with these exact integration changes.** Expand the existing Yard type import and replace Diagnostics:
+- [x] **Step 3: Edit `game/src/main.ts` with these exact integration changes.** Expand the existing Yard type import and replace Diagnostics:
 
 ```ts
 import type { Yard, YardSnapshot } from './physics/yard.ts';
@@ -988,13 +1055,13 @@ Add fields to the object returned by the existing development-only `window.__yar
 
 Do not expose yard/controller/renderer references or a setter on the window. `replaceWorld` already pauses before replacing, resets look, and begins paused; the session toggle remains in the same input object across restarts. `dispose()` releases through `yard.destroy()`.
 
-- [ ] **Step 4: Edit `game/src/render/yardView.ts` to add one owned tether and held highlight.** After `scene.add(worldRoot);`, insert:
+- [x] **Step 4: Edit `game/src/render/yardView.ts` to add one owned tether and held highlight.** After `scene.add(worldRoot);`, insert:
 
 ```ts
   const tetherGeometry = new THREE.BufferGeometry();
   const tetherPoints = new Float32Array(6);
   tetherGeometry.setAttribute('position', new THREE.BufferAttribute(tetherPoints, 3));
-  const tetherMaterial = new THREE.LineBasicMaterial({ color: '#d9b66c', transparent: true, opacity: 0.55 });
+  const tetherMaterial = new THREE.LineBasicMaterial({ color: '#d9b66c', transparent: true, opacity: 0.8 });
   const tether = new THREE.Line(tetherGeometry, tetherMaterial);
   tether.frustumCulled = false;
   tether.visible = false;
@@ -1016,8 +1083,9 @@ After `camera.rotation.set(...)` and before `renderer.render(...)`, insert:
     tether.visible = heldMesh !== undefined;
     if (heldMesh) {
       tetherPoints.set([
-        camera.position.x + Math.cos(yaw) * 0.18, camera.position.y - 0.18,
-        camera.position.z - Math.sin(yaw) * 0.18,
+        camera.position.x + Math.cos(yaw) * 0.25 - Math.sin(yaw) * Math.cos(pitch) * 0.4,
+        camera.position.y - 0.25 + Math.sin(pitch) * 0.4,
+        camera.position.z - Math.sin(yaw) * 0.25 - Math.cos(yaw) * Math.cos(pitch) * 0.4,
         heldMesh.position.x, heldMesh.position.y, heldMesh.position.z,
       ]);
       tetherGeometry.getAttribute('position').needsUpdate = true;
@@ -1033,7 +1101,7 @@ In `dispose()`, immediately before `texture.dispose();`, insert:
 
 The two GPU resources are allocated once per view and reused through restarts. No particle system, additional renderer, texture or asset loader is added.
 
-- [ ] **Step 5: Edit `game/index.html`.** Replace title, hint and intro with these exact elements:
+- [x] **Step 5: Edit `game/index.html`.** Replace title, hint and intro with these exact elements:
 
 ```html
     <title>Vadstena · Grip M1B-1</title>
@@ -1063,11 +1131,11 @@ Keep the existing gore default, storage text and honest prototype/NPC/gore scope
 #hint { max-width: min(38rem, 55vw); text-align: right; line-height: 1.6; }
 ```
 
-- [ ] **Step 6: Run `rtk npm run check` then the focused browser command from Step 2.** Expected 54 native tests and the new focused Grip browser test pass. Fix an actual observed failure with a narrow regression first when the existing test does not already reproduce it. If Playwright pointer-lock motion quantization changes the aim by a pixel, read the updated look and repeat bounded real mouse aim correction; do not add mutable diagnostics or replace mouse events with direct simulation calls.
+- [x] **Step 6: Run `rtk npm run check` then the focused browser command from Step 2.** Expected 56 native tests and the new focused Grip browser test pass. Fix an actual observed failure with a narrow regression first when the existing test does not already reproduce it. If Playwright pointer-lock motion quantization changes the aim by a pixel, read the updated look and repeat bounded real mouse aim correction; do not add mutable diagnostics or replace mouse events with direct simulation calls.
 
 ## Task 5: Focus-loss, placement and warm-resource browser acceptance
 
-- [ ] **Step 1: Append these two further browser tests and the shared helper to `game/browser/yard.spec.mjs` before implementing lifecycle/render changes.** The main interaction test above covers toggle, throw, rotation and failed-pickup look; these separate cases cover held-state lifecycle and repeated warm rendering without putting all work under one timeout.
+- [x] **Step 1: Append these two further browser tests and the shared helper to `game/browser/yard.spec.mjs` before implementing lifecycle/render changes.** The main interaction test above covers toggle, throw, rotation and failed-pickup look; these separate cases cover held-state lifecycle and repeated warm rendering without putting all work under one timeout.
 
 ```js
 async function startAndHoldStone(page) {
@@ -1158,17 +1226,17 @@ test('ten acquired Grip restarts preserve warmed tether GPU and physics resource
 });
 ```
 
-- [ ] **Step 2: Observe their RED with `rtk node --test --test-name-pattern="held Grip releases|ten acquired Grip" browser/yard.spec.mjs` before Task 4 production changes.** Expected assertion failure for absent snapshot diagnostics. The synthetic window blur exercises the same registered boundary as an OS focus loss; pointer-lock loss uses the browser's real `exitPointerLock()` API. No simulation state is injected.
+- [x] **Step 2: Observe their RED with `rtk node --test --test-name-pattern="held Grip releases|ten acquired Grip" browser/yard.spec.mjs` before Task 4 production changes.** Expected assertion failure for absent snapshot diagnostics. The synthetic window blur exercises the same registered boundary as an OS focus loss; pointer-lock loss uses the browser's real `exitPointerLock()` API. No simulation state is injected.
 
 ## Task 6: Full acceptance, visual inspection and owned-file delivery
 
-- [ ] **Step 1: Run the full existing browser suite plus three new Grip cases with `rtk npm run test:browser`.** Expected nine passing browser tests, including actual BFCache restore, production diagnostics removal, movement/preferences, ten clean restarts, context loss, and pointer-lock rejection. Record actual counts and runtime. Run `rtk npm run build` after native/browser acceptance; do not run desktop builds or any executable.
+- [x] **Step 1: Run the full existing browser suite plus three new Grip cases with `rtk npm run test:browser`.** Expected nine passing browser tests, including actual BFCache restore, production diagnostics removal, movement/preferences, ten clean restarts, context loss, and pointer-lock rejection. Record actual counts and runtime. Run `rtk npm run build` after native/browser acceptance; do not run desktop builds or any executable.
 
-- [ ] **Step 2: Inspect the actual image `game/.playtest/grip-active.png` with `view_image`.** Check the held body is visibly lifted, the highlight/tether are readable, the crosshair stays clear, the hint does not overlap the brand, and the original sparse courtyard layout remains intact. If an adjustment is required, keep it within the existing highlight, line, or hint layout; repeat only the affected visual/browser check.
+- [x] **Step 2: Inspect the actual image `game/.playtest/grip-active.png` with `view_image`.** Check the held body is visibly lifted, the highlight/tether are readable, the crosshair stays clear, the hint does not overlap the brand, and the original sparse courtyard layout remains intact. If an adjustment is required, keep it within the existing highlight, line, or hint layout; repeat only the affected visual/browser check.
 
-- [ ] **Step 3: Self-review the exact diff with `rtk git diff --check` and `rtk git diff -- game/src game/tests/grip.test.mjs game/tests/gripInput.test.mjs game/browser/yard.spec.mjs game/index.html`.** Confirm no dynamic-body teleport/kinematic conversion, no per-frame resource creation, no unbounded impulse accumulation, no DOM or Three dependency in physics, no mutable window diagnostics, and no gore codec changes. The physics tests must show force and torque budgets, actual held contacts, conservative release reasons, and mass-dependent saturated throws. GPU counts after repeated resets remain covered by the existing regression.
+- [x] **Step 3: Self-review the exact diff with `rtk git diff --check` and `rtk git diff -- game/src game/tests/grip.test.mjs game/tests/gripInput.test.mjs game/browser/yard.spec.mjs game/index.html`.** Confirm no dynamic-body teleport/kinematic conversion, no per-frame resource creation, no unbounded impulse accumulation, no DOM or Three dependency in physics, no mutable window diagnostics, and no gore codec changes. The physics tests must show force and torque budgets, actual held contacts, conservative release reasons, and mass-dependent saturated throws. GPU counts after repeated resets remain covered by the existing regression.
 
-- [ ] **Step 4: Create `docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md` using `apply_patch`, recording actual observed evidence under this required structure.** The implementation writer supplies real command outputs and measurements; these fields are factual reports written after running, not assumed results:
+- [x] **Step 4: Create `docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md` using `apply_patch`, recording actual observed evidence under this required structure.** The implementation writer supplies real command outputs and measurements; these fields are factual reports written after running, not assumed results:
 
 ```markdown
 # M1B-1 Grip results
@@ -1194,7 +1262,7 @@ Link the actual active-Grip capture and report input, pause/restart, gore persis
 State that tuning is provisional and no subjective weight study, joined-chain validation, full P03/M1B, NPC/gore presentation, engine migration, historical scene, desktop repackaging, publication or deployment was completed here.
 ```
 
-- [ ] **Step 5: Send the coordinator the ready diff and evidence for independent spec review followed by quality review.** Address concrete findings with regression coverage. Stage only these owned paths after coordinator release readiness; research reports remain coordinator-owned and `docs/research/deep-research/2026-09-08/work` stays untracked and untouched:
+- [x] **Step 5: Send the coordinator the ready diff and evidence for independent spec review followed by quality review.** Address concrete findings with regression coverage. Stage only these owned paths after coordinator release readiness; research reports remain coordinator-owned and `docs/research/deep-research/2026-09-08/work` stays untracked and untouched:
 
 ```powershell
 rtk git add game/src/physics/grip.ts game/src/physics/yard.ts game/src/input/gripInput.ts game/src/input/browserInput.ts game/src/main.ts game/src/render/yardView.ts game/src/style.css game/index.html game/tests/grip.test.mjs game/tests/gripInput.test.mjs game/browser/yard.spec.mjs docs/superpowers/plans/2026-09-08-grip-telekinesis.md docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md

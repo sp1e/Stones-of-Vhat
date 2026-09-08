@@ -1,13 +1,20 @@
 import './style.css';
 import { createBrowserInput } from './input/browserInput.ts';
 import { createYard } from './physics/yard.ts';
-import type { Yard } from './physics/yard.ts';
+import type { Yard, YardSnapshot } from './physics/yard.ts';
 import { createYardView } from './render/yardView.ts';
 import type { YardView } from './render/yardView.ts';
 import { createFixedStepper } from './runtime/fixedStep.ts';
 import { createPreferenceStore } from './settings/preferenceStore.ts';
 
-type Diagnostics = { running: boolean; tick: number; restarts: number; position: { x: number; y: number; z: number }; counts: { bodies: number; colliders: number }; gpu: { geometries: number; textures: number; programs: number } };
+type Diagnostics = {
+  running: boolean; tick: number; restarts: number;
+  position: { x: number; y: number; z: number };
+  counts: { bodies: number; colliders: number };
+  gpu: { geometries: number; textures: number; programs: number };
+  look: { yaw: number; pitch: number };
+  snapshot: YardSnapshot | null;
+};
 declare global { interface Window { __yard?: () => Diagnostics; } }
 
 function requireElement<T extends Element>(selector: string): T {
@@ -25,6 +32,9 @@ const startButton = requireElement<HTMLButtonElement>('#start');
 const restartButton = requireElement<HTMLButtonElement>('#restart');
 const reloadButton = requireElement<HTMLButtonElement>('#reload');
 const goreCheckbox = requireElement<HTMLInputElement>('#gore');
+const gripToggle = requireElement<HTMLInputElement>('#grip-toggle');
+const hint = requireElement<HTMLElement>('#hint');
+gripToggle.checked = false;
 
 // pagehide disposes every owned resource. This listener deliberately outlives
 // that aborted lifecycle so a BFCache restoration can rebuild via a real load.
@@ -63,6 +73,7 @@ function showPausedPanel(message = 'Pausad. Klicka för att återvända till gå
 function pause(exitLock = true): void {
   running = false;
   input?.setActive(false);
+  yard?.releaseGrip();
   tick = advance(0, false, () => undefined).tick;
   showPausedPanel();
   if (exitLock && document.pointerLockElement === view?.canvas) document.exitPointerLock();
@@ -82,11 +93,19 @@ function renderFrame(timestamp: number): void {
   const elapsed = Math.max(0, (timestamp - lastTimestamp) / 1000);
   lastTimestamp = timestamp;
   if (yard && view && input) {
-    const result = advance(elapsed, running, () => yard?.step(input?.sample() ?? { right: 0, forward: 0, yaw: 0, sprint: false, crouch: false, jump: false }));
+    const result = advance(elapsed, running, () => {
+      if (!yard || !input) return;
+      yard.step(input.sample(), input.sampleGrip());
+      input.setGripHolding(yard.snapshot().grip.heldId !== null);
+    });
     tick = result.tick;
     if (running && result.steps > 0) resumedNeedsStep = false;
     const look = input.look();
-    view.render(yard.snapshot(), running && !resumedNeedsStep ? result.alpha : 1, look.yaw, look.pitch);
+    const snapshot = yard.snapshot();
+    view.render(snapshot, running && !resumedNeedsStep ? result.alpha : 1, look.yaw, look.pitch);
+    hint.textContent = !running ? 'GRIP / M1B-1' : snapshot.grip.heldId
+      ? `${snapshot.grip.mass?.toFixed(1)} KG · ${snapshot.grip.distance.toFixed(1)} M · R ROTERA · VÄNSTERKLICK KASTA`
+      : snapshot.grip.candidateId ? 'HÖGERKLICK · GRIP' : 'SIKTA PÅ ETT FYSISKT OBJEKT · HÖGERKLICK GRIP';
   }
   frameId = requestAnimationFrame(renderFrame);
 }
@@ -136,6 +155,11 @@ function boot(): void {
   try {
     view = createYardView(host);
     input = createBrowserInput(() => pause());
+    input.setGripToggle(gripToggle.checked);
+    gripToggle.addEventListener('change', () => {
+      yard?.releaseGrip();
+      input?.setGripToggle(gripToggle.checked);
+    }, { signal: lifecycle.signal });
     view.canvas.addEventListener('webglcontextlost', (event) => { event.preventDefault(); fail('Grafikanslutningen förlorades. Ladda om sidan för att fortsätta.'); }, { signal: lifecycle.signal });
     window.addEventListener('resize', () => view?.resize(), { signal: lifecycle.signal });
     window.addEventListener('blur', () => pause(), { signal: lifecycle.signal });
@@ -161,6 +185,8 @@ function boot(): void {
     if (__YARD_DIAGNOSTICS__) {
       Object.defineProperty(window, '__yard', { configurable: true, writable: false, value: (): Diagnostics => ({
         running, tick, restarts,
+        look: input?.look() ?? { yaw: 0, pitch: 0 },
+        snapshot: yard?.snapshot() ?? null,
         position: yard?.snapshot().player.position ?? { x: 0, y: 0, z: 0 },
         counts: yard?.counts() ?? { bodies: 0, colliders: 0 },
         gpu: view?.diagnostics() ?? { geometries: 0, textures: 0, programs: 0 },

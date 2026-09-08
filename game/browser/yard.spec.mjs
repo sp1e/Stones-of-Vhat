@@ -292,3 +292,210 @@ test('a real BFCache restoration reloads the disposed page into a fresh paused g
     production.httpServer.close();
   }
 });
+
+test('physical Grip supports hold, wheel, rotation, throw, toggle recovery and pause/restart', { timeout: 90_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  let mouseX = 0, mouseY = 0;
+  async function start() {
+    const bounds = await page.locator('#start').boundingBox();
+    mouseX = bounds.x + bounds.width / 2; mouseY = bounds.y + bounds.height / 2;
+    await page.locator('#start').click();
+    await page.waitForFunction(() => window.__yard().running);
+  }
+  async function motion(dx, dy) {
+    mouseX += dx; mouseY += dy;
+    await page.mouse.move(mouseX, mouseY);
+  }
+  async function aimAngles(yaw, pitch) {
+    const look = await page.evaluate(() => window.__yard().look);
+    const yawDelta = Math.atan2(Math.sin(yaw - look.yaw), Math.cos(yaw - look.yaw));
+    await motion(-yawDelta / 0.002, -(pitch - look.pitch) / 0.002);
+  }
+  async function aimAt(id) {
+    const angles = await page.evaluate((bodyId) => {
+      const state = window.__yard().snapshot;
+      const point = state.bodies.find(body => body.id === bodyId).position;
+      const eye = state.player.eye;
+      return { yaw: Math.atan2(eye.x - point.x, eye.z - point.z),
+        pitch: Math.atan2(point.y - eye.y, Math.hypot(point.x - eye.x, point.z - eye.z)) };
+    }, id);
+    await aimAngles(angles.yaw, angles.pitch);
+  }
+  async function ticks(count) {
+    const before = await page.evaluate(() => window.__yard().tick);
+    await page.waitForFunction(({ before, count }) => window.__yard().tick >= before + count, { before, count });
+  }
+  try {
+    await waitForReady(page);
+    const initial = await page.evaluate(() => window.__yard());
+    assert.equal(initial.snapshot?.grip.heldId, null, 'detached Grip diagnostics must exist before start');
+    assert.equal(initial.running, false);
+    await start();
+    await ticks(30);
+    await aimAt('stone');
+    await page.mouse.down({ button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+    await aimAngles(0, 0);
+    await ticks(90);
+    const held = await page.evaluate(() => window.__yard());
+    assert.ok(held.snapshot.bodies.find(body => body.id === 'stone').position.y > 1);
+    assert.equal(await page.evaluate(() => {
+      const copy = window.__yard();
+      copy.look.yaw = 900;
+      copy.snapshot.grip.target.x = 900;
+      copy.snapshot.bodies[0].position.x = 900;
+      const fresh = window.__yard();
+      return fresh.look.yaw !== 900 && fresh.snapshot.grip.target.x !== 900 && fresh.snapshot.bodies[0].position.x !== 900;
+    }), true, 'window diagnostics must return detached state');
+    await page.mouse.wheel(0, -200);
+    await ticks(10);
+    assert.ok(await page.evaluate(distance => window.__yard().snapshot.grip.distance < distance, held.snapshot.grip.distance));
+    const beforeRotate = await page.evaluate(() => window.__yard().look);
+    const oldRotation = await page.evaluate(() => window.__yard().snapshot.bodies.find(body => body.id === 'stone').rotation);
+    await page.keyboard.down('KeyR');
+    for (let turn = 0; turn < 6; turn++) { await motion(20, -5); await ticks(2); }
+    await page.keyboard.up('KeyR');
+    await ticks(30);
+    assert.deepEqual(await page.evaluate(() => window.__yard().look), beforeRotate);
+    const rotated = await page.evaluate(() => window.__yard().snapshot.bodies.find(body => body.id === 'stone').rotation);
+    assert.ok(Math.abs(oldRotation.x * rotated.x + oldRotation.y * rotated.y + oldRotation.z * rotated.z + oldRotation.w * rotated.w) < 0.99);
+    await page.screenshot({ path: join(captures, 'grip-active.png') });
+    await page.mouse.click(mouseX, mouseY, { button: 'left' });
+    await ticks(2);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+    await page.mouse.up({ button: 'right' });
+
+    await aimAngles(0, 1.1);
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await ticks(2);
+    const failedLook = await page.evaluate(() => window.__yard().look);
+    await page.keyboard.down('KeyR'); await motion(40, 0); await page.keyboard.up('KeyR');
+    assert.notEqual((await page.evaluate(() => window.__yard().look)).yaw, failedLook.yaw, 'R must not freeze camera after failed pickup');
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    await page.locator('#controls summary').click();
+    await page.locator('#grip-toggle').check();
+    await page.locator('#gore').uncheck();
+    await page.locator('#restart').click();
+    await page.waitForFunction(() => window.__yard().restarts === 1 && !document.querySelector('#start').disabled);
+    const paused = await page.evaluate(() => window.__yard());
+    await page.keyboard.down('KeyR'); await page.mouse.move(1300, 100); await page.keyboard.up('KeyR');
+    await page.mouse.click(1300, 100, { button: 'right' });
+    assert.deepEqual((await page.evaluate(() => window.__yard())).look, paused.look);
+    assert.equal(await page.locator('#gore').isChecked(), false);
+    assert.equal(await page.locator('#grip-toggle').isChecked(), true);
+    await start(); await ticks(30);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null, 'start click must not acquire or throw');
+    await aimAt('stone');
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+    await aimAngles(0, 0); await ticks(90);
+    await page.mouse.click(mouseX, mouseY, { button: 'left' }); await ticks(2);
+    await aimAt('crate-a');
+    await page.mouse.click(mouseX, mouseY, { button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'crate-a');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null, 'pause releases immediately without another physics tick');
+    await start(); await ticks(10);
+    assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('#start').disabled);
+    await page.locator('#controls summary').click();
+    assert.equal(await page.locator('#grip-toggle').isChecked(), false, 'Grip toggle is explicitly session-only');
+    assert.equal(await page.locator('#gore').isChecked(), false, 'gore false remains independently persisted');
+    assertNoFailures();
+  } finally { await context.close(); }
+});
+
+async function startAndHoldStone(page) {
+  const bounds = await page.locator('#start').boundingBox();
+  let x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+  await page.locator('#start').click();
+  await page.waitForFunction(() => window.__yard().running);
+  let state = await page.evaluate(() => window.__yard());
+  await page.waitForFunction(tick => window.__yard().tick > tick + 20, state.tick);
+  state = await page.evaluate(() => window.__yard());
+  const eye = state.snapshot.player.eye;
+  const point = state.snapshot.bodies.find(body => body.id === 'stone').position;
+  const yaw = Math.atan2(eye.x - point.x, eye.z - point.z);
+  const pitch = Math.atan2(point.y - eye.y, Math.hypot(point.x - eye.x, point.z - eye.z));
+  const difference = Math.atan2(Math.sin(yaw - state.look.yaw), Math.cos(yaw - state.look.yaw));
+  x -= difference / 0.002; y -= (pitch - state.look.pitch) / 0.002;
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: 'right' });
+  await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === 'stone');
+  state = await page.evaluate(() => window.__yard());
+  x += state.look.yaw / 0.002; y += state.look.pitch / 0.002;
+  await page.mouse.move(x, y);
+  await page.waitForFunction(tick => window.__yard().tick >= tick + 75, state.tick);
+  assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), 'stone');
+}
+
+test('held Grip releases on real button-up, focus loss and pointer-lock loss without latent actions', { timeout: 90_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  try {
+    await waitForReady(page);
+    assert.equal((await page.evaluate(() => window.__yard())).snapshot?.grip.heldId, null);
+    await startAndHoldStone(page);
+    const beforeRelease = await page.evaluate(() => window.__yard());
+    await page.mouse.up({ button: 'right' });
+    await page.waitForFunction(() => window.__yard().snapshot.grip.heldId === null);
+    await page.waitForFunction(tick => window.__yard().tick > tick + 90, beforeRelease.tick);
+    const afterRelease = await page.evaluate(() => window.__yard());
+    assert.ok(afterRelease.snapshot.bodies.find(body => body.id === 'stone').position.y < beforeRelease.snapshot.bodies.find(body => body.id === 'stone').position.y - 0.5);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__yard().running);
+    for (const boundary of ['blur', 'pointerlock']) {
+      await startAndHoldStone(page);
+      if (boundary === 'blur') await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      else await page.evaluate(() => document.exitPointerLock());
+      await page.waitForFunction(() => !window.__yard().running);
+      const paused = await page.evaluate(() => window.__yard());
+      assert.equal(paused.snapshot.grip.heldId, null);
+      await page.mouse.up({ button: 'right' });
+      await page.locator('#start').click();
+      await page.waitForFunction(tick => window.__yard().running && window.__yard().tick > tick + 15, paused.tick);
+      assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !window.__yard().running);
+    }
+    assertNoFailures();
+  } finally { await context.close(); }
+});
+
+test('ten acquired Grip restarts preserve warmed tether GPU and physics resources', { timeout: 180_000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+  const page = await context.newPage();
+  const assertNoFailures = observeFailures(page);
+  try {
+    await waitForReady(page);
+    assert.equal((await page.evaluate(() => window.__yard())).snapshot?.grip.heldId, null);
+    await startAndHoldStone(page);
+    await waitAnimationFrames(page, 3);
+    const warm = await page.evaluate(() => window.__yard());
+    for (let restart = 1; restart <= 10; restart++) {
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !window.__yard().running);
+      await page.mouse.up({ button: 'right' });
+      await page.locator('#restart').click();
+      await page.waitForFunction(count => window.__yard().restarts === count && !document.querySelector('#start').disabled, restart);
+      assert.equal(await page.evaluate(() => window.__yard().snapshot.grip.heldId), null);
+      await startAndHoldStone(page);
+      await waitAnimationFrames(page, 3);
+      const state = await page.evaluate(() => window.__yard());
+      assert.deepEqual(state.counts, warm.counts);
+      assert.deepEqual(state.gpu, warm.gpu);
+      assert.equal(state.snapshot.grip.joints, 0);
+      assert.equal(await page.locator('#viewport canvas').count(), 1);
+    }
+    assertNoFailures();
+  } finally { await context.close(); }
+});

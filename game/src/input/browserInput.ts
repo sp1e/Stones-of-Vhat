@@ -1,4 +1,5 @@
 import { createActionBuffer } from './actionBuffer.ts';
+import { createGripInput } from './gripInput.ts';
 import type { Action } from './actionBuffer.ts';
 import type { MoveIntent } from '../physics/yard.ts';
 
@@ -10,6 +11,7 @@ const MOVEMENT_KEYS: Readonly<Record<string, Action>> = {
 export function createBrowserInput(onPause: () => void) {
   const controller = new AbortController();
   const actions = createActionBuffer();
+  const grip = createGripInput();
   const physicalKeys = new Set<string>();
   let active = false;
   let yaw = 0;
@@ -31,6 +33,7 @@ export function createBrowserInput(onPause: () => void) {
       onPause();
       return;
     }
+    if (event.code === 'KeyR') { event.preventDefault(); grip.rotate(true); return; }
     const action = MOVEMENT_KEYS[event.code];
     if (!action) return;
     event.preventDefault();
@@ -38,17 +41,33 @@ export function createBrowserInput(onPause: () => void) {
     physicalKeys.add(event.code);
     actions.press(action);
   }, { signal: controller.signal });
-  document.addEventListener('keyup', (event) => releaseCode(event.code), { signal: controller.signal });
+  document.addEventListener('keyup', (event) => {
+    if (event.code === 'KeyR') grip.rotate(false);
+    releaseCode(event.code);
+  }, { signal: controller.signal });
   document.addEventListener('mousemove', (event) => {
     if (!active) return;
+    if (grip.motion(event.movementX, event.movementY)) return;
     yaw -= event.movementX * 0.002;
     pitch = Math.max(-1.45, Math.min(1.45, pitch - event.movementY * 0.002));
   }, { signal: controller.signal });
+
+  document.addEventListener('mousedown', (event) => {
+    if (!active || (event.button !== 0 && event.button !== 2)) return;
+    event.preventDefault(); grip.button(event.button, true);
+  }, { signal: controller.signal });
+  document.addEventListener('mouseup', (event) => grip.button(event.button, false), { signal: controller.signal });
+  document.addEventListener('contextmenu', (event) => { if (active) event.preventDefault(); }, { signal: controller.signal });
+  document.addEventListener('wheel', (event) => {
+    if (!active) return;
+    event.preventDefault(); grip.wheel(event.deltaY);
+  }, { signal: controller.signal, passive: false });
 
   function setActive(next: boolean): void {
     if (disposed) return;
     active = next;
     actions.setActive(next);
+    grip.setActive(next);
     if (!next) physicalKeys.clear();
   }
   function sample(): MoveIntent {
@@ -72,6 +91,8 @@ export function createBrowserInput(onPause: () => void) {
     controller.abort();
     physicalKeys.clear();
     actions.setActive(false);
+    grip.setActive(false);
   }
-  return { setActive, sample, look, resetLook, dispose };
+  return { setActive, sample, look, resetLook, dispose,
+    sampleGrip: () => grip.sample(yaw, pitch), setGripToggle: grip.setToggle, setGripHolding: grip.setHolding };
 }

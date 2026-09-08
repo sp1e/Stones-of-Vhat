@@ -78,6 +78,14 @@ export function createYardView(host: HTMLElement) {
   const worldRoot = new THREE.Group();
   const meshes = new Map<string, THREE.Mesh>();
   scene.add(worldRoot);
+  const tetherGeometry = new THREE.BufferGeometry();
+  const tetherPoints = new Float32Array(6);
+  tetherGeometry.setAttribute('position', new THREE.BufferAttribute(tetherPoints, 3));
+  const tetherMaterial = new THREE.LineBasicMaterial({ color: '#d9b66c', transparent: true, opacity: 0.8 });
+  const tether = new THREE.Line(tetherGeometry, tetherMaterial);
+  tether.frustumCulled = false;
+  tether.visible = false;
+  scene.add(tether);
   let disposed = false;
 
   function disposeWorldMeshes(): void {
@@ -101,6 +109,7 @@ export function createYardView(host: HTMLElement) {
 
   function reset(layout: readonly BodyDefinition[]): void {
     if (disposed) return;
+    tether.visible = false;
     disposeWorldMeshes();
     for (const definition of layout) {
       const material = new THREE.MeshStandardMaterial({
@@ -137,11 +146,25 @@ export function createYardView(host: HTMLElement) {
       oldRotation.set(pose.previousRotation.x, pose.previousRotation.y, pose.previousRotation.z, pose.previousRotation.w);
       currentRotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
       mesh.quaternion.slerpQuaternions(oldRotation, currentRotation, blend);
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      material.emissive.set(snapshot.grip.heldId === pose.id ? '#b9924f' : '#000000');
+      material.emissiveIntensity = snapshot.grip.heldId === pose.id ? 0.28 : 0;
     }
     oldPosition.set(snapshot.player.previousEye.x, snapshot.player.previousEye.y, snapshot.player.previousEye.z);
     currentPosition.set(snapshot.player.eye.x, snapshot.player.eye.y, snapshot.player.eye.z);
     camera.position.lerpVectors(oldPosition, currentPosition, blend);
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    const heldMesh = snapshot.grip.heldId ? meshes.get(snapshot.grip.heldId) : undefined;
+    tether.visible = heldMesh !== undefined;
+    if (heldMesh) {
+      tetherPoints.set([
+        camera.position.x + Math.cos(yaw) * 0.25 - Math.sin(yaw) * Math.cos(pitch) * 0.4,
+        camera.position.y - 0.25 + Math.sin(pitch) * 0.4,
+        camera.position.z - Math.sin(yaw) * 0.25 - Math.cos(yaw) * Math.cos(pitch) * 0.4,
+        heldMesh.position.x, heldMesh.position.y, heldMesh.position.z,
+      ]);
+      tetherGeometry.getAttribute('position').needsUpdate = true;
+    }
     renderer.render(scene, camera);
   }
 
@@ -153,6 +176,8 @@ export function createYardView(host: HTMLElement) {
     if (disposed) return;
     disposed = true;
     disposeWorldMeshes();
+    tetherGeometry.dispose();
+    tetherMaterial.dispose();
     texture.dispose();
     sun.shadow.map?.dispose();
     renderer.renderLists.dispose();

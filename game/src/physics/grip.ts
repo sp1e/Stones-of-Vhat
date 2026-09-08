@@ -3,6 +3,8 @@ import type { Rotation, Vec3 } from '../content/yardLayout.ts';
 import { FIXED_DT as dt } from '../runtime/fixedStep.ts';
 
 export type GripCommand = {
+  // One fixed-tick sample: wanted is a level; acquire and throwPressed are
+  // consumed event pulses. Adjacent true samples can represent distinct clicks.
   wanted: boolean; acquire: boolean; throwPressed: boolean;
   yaw: number; pitch: number; distanceDelta: number;
   rotateYaw: number; rotatePitch: number;
@@ -49,8 +51,6 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
   let held: { id: string; body: RAPIER.RigidBody; rotation: Rotation; radius: number; target: Vec3; targetVelocity: Vec3 } | null = null;
   let state: GripSnapshot = { status: 'idle', candidateId: null, heldId: null, mass: null,
     distance: 3, target: null, impulse: 0, torqueImpulse: 0, joints: 0, contacts: 0, reason: 'none' };
-  let acquireDown = false;
-  let throwDown = false;
   const release = (status: GripSnapshot['status'] = 'released', reason: GripSnapshot['reason'] = 'released', keepHover = false) => {
     held = null;
     state = { ...state, status, reason, candidateId: keepHover ? state.candidateId : null,
@@ -60,12 +60,8 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     const valid = command && [command.yaw, command.pitch, command.distanceDelta, command.rotateYaw, command.rotatePitch, eye.x, eye.y, eye.z].every(Number.isFinite)
       && [command.wanted, command.acquire, command.throwPressed].every(value => typeof value === 'boolean');
     if (!valid) {
-      release(command ? 'invalid' : 'idle', command ? 'input' : 'released'); acquireDown = false; throwDown = false; return;
+      release(command ? 'invalid' : 'idle', command ? 'input' : 'released'); return;
     }
-    const acquireEdge = command.acquire && !acquireDown;
-    const throwEdge = command.throwPressed && !throwDown;
-    acquireDown = command.acquire;
-    throwDown = command.throwPressed;
     const direction = { x: -Math.sin(command.yaw) * Math.cos(command.pitch), y: Math.sin(command.pitch), z: -Math.cos(command.yaw) * Math.cos(command.pitch) };
     state.impulse = 0; state.torqueImpulse = 0; state.candidateId = null;
     const pick = world.castRay(new RAPIER.Ray(eye, direction), GRIP_LIMITS.range, true,
@@ -74,7 +70,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
     const entry = candidate && [...bodies].find(([, body]) => body.handle === candidate.handle);
     if (entry && candidate?.isDynamic() && candidate.mass() > 0 && candidate.mass() <= GRIP_LIMITS.mass) state.candidateId = entry[0];
     if (!command.wanted) release('idle', 'released', true);
-    if (!held && command.wanted && acquireEdge && entry && state.candidateId) {
+    if (!held && command.wanted && command.acquire && entry && state.candidateId) {
       const body = entry[1];
       const collider = body.collider(0);
       // Current authored props have one centered collider. Bounding radius is
@@ -127,7 +123,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
       held.targetVelocity = { x: 0, y: 0, z: 0 };
     }
     held.target = { ...target };
-    if (throwEdge) {
+    if (command.throwPressed) {
       body.applyImpulse(scale(direction, Math.min(mass * GRIP_LIMITS.throwSpeed, GRIP_LIMITS.throwImpulse)), true);
       release('thrown'); return;
     }
@@ -151,7 +147,7 @@ export function createGrip(world: RAPIER.World, bodies: ReadonlyMap<string, RAPI
   }
   return {
     step,
-    release(): void { release(); acquireDown = false; throwDown = false; },
+    release(): void { release(); },
     snapshot(): GripSnapshot {
       let contacts = 0;
       if (held) {
