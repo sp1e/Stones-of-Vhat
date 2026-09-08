@@ -129,7 +129,7 @@ export function createBodyMotion(world: RAPIER.World, sources: readonly MotionSo
     },
     assertRef,
     read(): MotionInterval { alive(); return structuredClone(interval); },
-    /** Owner-only: publish once after each successful fixed world.step; this never steps Rapier. */
+    /** Owner-only: publish after a successfully completed authoritative fixed integration interval/batch; never advances native time. */
     completeStep(): void {
       alive();
       const bodies = interval.bodies.map(previous => {

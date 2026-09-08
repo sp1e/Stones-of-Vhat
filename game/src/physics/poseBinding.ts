@@ -256,7 +256,7 @@ export function createPoseAuthority(
       pendingTick = tick;
       return true;
     },
-    /** Owner-only: call after the existing successful fixed world.step, never to advance time. */
+    /** Owner-only: capture after a successfully completed authoritative fixed integration interval/batch; never advances native time. */
     capture(tick: number): void {
       alive();
       nextTick(tick);

@@ -1,0 +1,36 @@
+<!-- game/arm-lab.html -->
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vadstena · Armprov</title>
+  </head>
+  <body>
+    <main id="lab-shell">
+      <aside aria-label="Kontroller för armprovet">
+        <p class="eyebrow">VADSTENA / UTVECKLINGSPROV</p>
+        <h1>Från rörelse<br />till fysik.</h1>
+        <p class="intro">Två ledade segment med samma kroppar, massa och pose genom överlämningen.</p>
+        <div class="buttons">
+          <button id="animate" disabled>Starta animation</button>
+          <button id="pause" disabled>Pausa</button>
+          <button id="handoff" disabled>Överlämna + impuls</button>
+          <button id="reset" disabled>Återställ provet</button>
+          <button id="reload" hidden>Ladda om och försök igen</button>
+        </div>
+        <p id="lab-status" role="status" aria-live="polite">Förbereder armprovet…</p>
+        <dl>
+          <dt>Steg</dt><dd id="tick">0</dd>
+          <dt>Ledavstånd</dt><dd id="gap">—</dd>
+          <dt>Kontaktpenetration</dt><dd id="penetration">—</dd>
+          <dt>Armmassa</dt><dd id="mass">3 kg</dd>
+        </dl>
+        <p class="legend"><span class="com-dot"></span> Masscentrum <span class="anchor-dot"></span> Ledankare</p>
+        <p class="footnote">Separat teknikvy. Ledkoordinaterna är diagnostik, inte anatomiska gränser. Ingen komplett ragdoll visas.</p>
+      </aside>
+      <section id="lab-viewport" aria-label="Tredimensionellt armprov"></section>
+    </main>
+    <script type="module" src="./src/lab/armLab.ts"></script>
+  </body>
+</html>
