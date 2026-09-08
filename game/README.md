@@ -1,8 +1,8 @@
-# Vadstena — spelbar Grip-prototyp M1B-1
+# Vadstena — Grip-prototyp och fysisk armtestmiljö
 
 En lokal PC-webbprototyp med Three.js-rendering, Rapier-fysik och fysisk telekinesi. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och magins grundmekanik — inte den historiska Vadstenamiljön.
 
-Grip är implementerat och godkänt i separata spec- och kodgranskningar: strikt typkontroll, 57 modultester, nio webbläsartester och webbbygget passerar. Se [Grip-resultatet](../docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md) för testbevis, granskningar och avgränsningar. Ett klart Grip-prov betyder inte att hela M1B eller kapitlet är färdigt.
+Grip är implementerat och godkänt i separata spec- och kodgranskningar. Den nya rörelsegrunden bevarar kroppsidentitet, masscentrum och hastighet när animation lämnar över till fysik. Se [Grip-resultatet](../docs/superpowers/plans/2026-09-08-grip-telekinesis-results.md), [rörelsegrunden](../docs/superpowers/plans/2026-09-08-body-motion-results.md) och [armprovets verifiering](../docs/superpowers/plans/2026-09-08-arm-lab-results.md). Ett klart delprov betyder inte att hela M1B, en fullständig ragdoll eller kapitlet är färdigt.
 
 ## Kör lokalt
 
@@ -32,6 +32,12 @@ Startknappen begär webbläsarens muslås; simuleringen börjar först när lås
 
 Pausmenyn erbjuder även högerklick för att **växla** Grip. Det valet gäller endast den aktuella sessionen och återställs när sidan laddas om; paus släpper alltid objektet. Gore är **på från första start**, med ett separat sparat av-val. Prototypen har ännu inga NPC:er eller gore-effekter.
 
+## Separat armprov för utveckling
+
+Med utvecklingsservern igång: öppna [armprovet](http://127.0.0.1:5173/vadstena/arm-lab.html). Starta animationen, pausa vid önskad pose och välj **Överlämna + impuls**. **Fortsätt fysik** låter armen falla och träffa golv/vägg; **Återställ provet** ger en ny isolerad fysikvärld. Överlämning fungerar även medan animationen kör. Turkosa markörer visar masscentrum, röda visar ledankare.
+
+De två segmenten behåller sina kroppar, massa och omedelbara pose; korrekt samplad masscentrums- och rotationshastighet överförs före impulsen. Vyn visar ledavstånd och kontaktpenetration från verklig Rapier-fysik. Detta är avsiktlig teknisk boxgeometri och diagnostiska ledkoordinater, inte anatomiska ledgränser eller en färdig människoarm. Armprovet har egna fysikinställningar och påverkar inte gården. HTML och labbkod ingår inte i det vanliga produktionsbygget.
+
 ## Verifiering och omfattning
 
     rtk proxy npm --prefix game run check
@@ -41,9 +47,11 @@ Implementerat: förstapersonsrörelse, sprint, hopp, hukning, trappor/ramp/låg 
 
 De automatiska webbläsartesterna använder Chromium/SwiftShader. De är funktions- och resurskontroller, inte uppmätt hårdvaruprestanda eller mänsklig bedömning av spelkänslan. Den stora befintliga Rapier/Three-bunten ger fortfarande Vites storleksvarning.
 
+Senaste samlade kontroll: **strikt typkontroll, 104 modultester, 13 webbläsartester och webbbygget passerar**, med separata godkända spec- och kvalitetsgranskningar. Armprovet använder åtta interna fysikdelsteg per ordinarie 60 Hz-steg efter överlämning; animationen behåller sin vanliga takt. De 59 fasfallen i modultesterna kompletterades med en oberoende tät kontroll: 759 olika överlämningstidpunkter och 3 643 200 mellanliggande fysikmätningar. Största uppmätta ledavståndet var **0,52 mm** mot provgränsen 5 mm. Misslyckade tidigare inställningar och reproduktionskod är sparade i resultatdokumentet. Detta är verifiering av en avgränsad testarm, inte bevis för fullkroppsstabilitet, alla tänkbara förlopp eller prestandabudget.
+
 Inte implementerat ännu: Focus, magiska projektiler, NPC:er, närstrid, ragdolls, anatomisk avskiljning/gore-grafik, historisk spelmiljö och kapitlets berättelse. Mobilutveckling är uppskjuten.
 
-De [adopterade researchbesluten](../docs/superpowers/plans/2026-09-08-research-adoption.md) styr nästa etapp. [Nästa avgränsade steg](../docs/superpowers/plans/2026-09-08-body-motion-next-slice.md) är kroppsidentitet/rörelse och animation-till-fysik för en testarm, före rörlig projektilkontakt.
+De [adopterade researchbesluten](../docs/superpowers/plans/2026-09-08-research-adoption.md) styr nästa etapp. [Nästa avgränsade steg](../docs/superpowers/plans/2026-09-08-moving-contact-next-slice.md) är tidsmedveten Slicer-kontakt: rörlig arm, sköld och tunn vägg, med första blockerare och tydlig kontaktposition. Det dokumentet är en fortsättningsbrief; projektilsystemet är ännu inte implementerat.
 
 ## Windows: tidigare uppackat bygge, inte den nya Grip-versionen
 
@@ -51,7 +59,7 @@ Det befintliga `game/release/win-unpacked/Vadstena.exe` innehåller den tidigare
 
 Defender satte ett tidigare bygge i karantän den 5 september som `Trojan:Win32/Cinjo.O!cl`. Simon tillät filerna själv. Inga nya matchande händelser observerades under de kontrollerade starterna, men tillåtelsen och filernas verifierade ursprung **bevisar inte en falsk positiv träff eller säkerhetsklarering**. Projektverktygen har inte ändrat Defender-inställningar, lagt till undantag eller återställt karantän. En ny varning stoppar fortsatt körning.
 
-Bygg- och testkommandon finns nedan som dokumentation; de har inte körts som del av Grip-etappen:
+Bygg- och testkommandon finns nedan som dokumentation; de har inte körts som del av Grip- eller arm-etappen:
 
     rtk proxy npm --prefix game run build:desktop
     rtk proxy npm --prefix game run pack:desktop

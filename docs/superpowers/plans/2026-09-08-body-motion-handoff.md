@@ -1,5 +1,7 @@
 # Body motion and physical pose handoff Implementation Plan
 
+> **Execution record (2026-09-08):** Core implemented in `4bbb42c`; independent spec and quality reviews passed, with final core strict +76/76 native tests. See [execution evidence](2026-09-08-body-motion-results.md). The code blocks and unchecked steps below preserve the original plan, not the current source. Review-driven float32, ownership, fatal-owner and quaternion corrections in the committed implementation supersede the earlier examples; do not blindly replay them over working code.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Establish epoch-safe completed motion intervals and an in-place, velocity-preserving animation-to-physics handoff, ready for the next procedural two-segment arm stage.

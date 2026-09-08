@@ -56,3 +56,9 @@ Final coordinator `rtk proxy npm run check`: **strict +76/76 PASS**, native 2288
 Core file inventory: `game/src/physics/poseBinding.ts`, `bodyMotion.ts`, minimal `yard.ts` integration, `game/tests/bodyMotionHelpers.mjs`, `poseBinding.test.mjs`, `bodyMotion.test.mjs`; reviewed core plan and this evidence document accompany them. Next: execute the separately reviewed arm/adapter/lab plan, preserve the normal yard and retain all 76 native cases.
 
 No desktop build/launch, Defender mutation, website publication, package installation or personal-memory update is part of this work. User-owned research work/source cache is preserved.
+
+## Subsequent completed arm integration
+
+Core implementation is committed as `4bbb42c`. The separately accepted [arm stage](2026-09-08-arm-lab-results.md) eventually required its preregistered eight native physical substeps per authoritative 1/60 interval after genuine phase failures. Only the owner comments on `completeStep` and `capture` were clarified to describe authoritative integration batches; no core behavior changed. The normal yard still uses its existing native step.
+
+Fresh coordinator final combined gates on that frozen integration: **strict +104/104 native PASS** (19.472 s), **web build PASS**, **13/13 browser PASS** (168.918 s). Final independent arm spec and quality reviews approved, with a separate 759-phase dense physical diagnostic. These subsequent gates supersede the earlier pending combined-validation note, while retaining its chronological evidence. B01a is complete at the bounded core/arm level; full B01 and the chapter remain open.
