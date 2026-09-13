@@ -45,6 +45,10 @@ Run from a scratch script that edits one source line, runs the named test and re
 | W4 house rendered but its colliders dropped | facade rejection | failed: capsule inside `storgata-w4-plinth` |
 | approach north fence removed | escape sweep | failed (non-zero exit; assertion text not captured) |
 | gate step raised to 0.45 m | churchyard steps | failed (non-zero exit on the plateau assertion) |
+| render box swaps width and depth | scene: solid meshes equal colliders | failed as expected |
+| render ignores element yaw | scene: solid meshes equal colliders | failed as expected |
+| crown blobs pushed outward | scene: render-only envelopes | failed as expected |
+| scene dispose forgets materials | scene: dispose releases resources | failed as expected |
 
 ## Test cost
 
