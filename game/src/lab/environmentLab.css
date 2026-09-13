@@ -1,0 +1,48 @@
+/* Environment lab: full-bleed scene with a compact pause panel; follows the main prototype's palette. */
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ink: #f2ead9;
+  --muted: #b8bcae;
+  --ground: #101715;
+  --stone: #d8c8a5;
+  --brass: #b9924f;
+  --brass-bright: #d9b66c;
+  --line: rgb(216 200 165 / 28%);
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; min-width: 320px; height: 100%; margin: 0; overflow: hidden; background: var(--ground); color: var(--ink); }
+button, select, summary { font: inherit; }
+button:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--brass-bright); outline-offset: 3px; }
+#environment-viewport, #environment-viewport canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+#hud { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.brand, #zone { position: absolute; top: 1.25rem; margin: 0; font-size: 0.67rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; text-shadow: 0 1px 8px rgb(0 0 0 / 60%); }
+.brand { left: 1.35rem; color: rgb(242 234 217 / 80%); }
+#zone { right: 1.35rem; color: var(--brass-bright); }
+#crosshair { position: fixed; z-index: 3; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border: 1px solid rgb(255 247 225 / 90%); border-radius: 50%; box-shadow: 0 0 0 1px rgb(0 0 0 / 35%); pointer-events: none; }
+#panel { position: fixed; z-index: 4; top: 50%; left: clamp(1rem, 5vw, 5rem); width: min(440px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; transform: translateY(-50%); padding: clamp(1.2rem, 2.6vw, 2.2rem); border: 1px solid var(--line); background: linear-gradient(145deg, rgb(23 32 30 / 95%), rgb(16 23 21 / 90%)); box-shadow: 0 28px 70px rgb(0 0 0 / 38%); }
+#panel[hidden], #crosshair[hidden], #reload[hidden] { display: none; }
+.eyebrow, footer { margin: 0 0 0.9rem; color: var(--brass-bright); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.18em; }
+h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.9rem, 4.2vw, 3.1rem); font-weight: 500; line-height: 0.98; letter-spacing: -0.03em; }
+.intro { max-width: 40ch; margin: 1rem 0 1.2rem; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+#status { min-height: 1.4em; margin: 0 0 0.9rem; color: var(--stone); font-size: 0.86rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+button { min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--brass); border-radius: 0; background: var(--brass-bright); color: #181711; font-weight: 750; cursor: pointer; }
+button.secondary { background: transparent; color: var(--stone); }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { cursor: default; opacity: 0.48; }
+.options { display: grid; grid-template-columns: 1fr; gap: 0.3rem; margin-top: 1rem; }
+.options label { color: var(--stone); font-size: 0.78rem; font-weight: 650; margin-top: 0.35rem; }
+select { min-height: 38px; padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 0; background: #16201d; color: var(--ink); }
+details { margin-top: 1rem; border-top: 1px solid var(--line); }
+summary { padding: 0.85rem 0 0.3rem; color: var(--stone); cursor: pointer; font-weight: 650; }
+.control-list { margin: 0.6rem 0; font-size: 0.84rem; color: var(--muted); }
+.control-list div { display: grid; grid-template-columns: 5.2rem 1fr; gap: 0.6rem; padding: 0.2rem 0; }
+.control-list dt { color: var(--ink); font-weight: 750; }
+.control-list dd { margin: 0; }
+#provenance-list { margin: 0.6rem 0; padding-left: 1rem; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+#provenance-list li { margin-bottom: 0.45rem; }
+#provenance-list strong { color: var(--ink); font-weight: 650; }
+.fine-print { color: #9ca297; font-size: 0.74rem; line-height: 1.45; }
+footer { margin: 1.2rem 0 0; color: #8e9589; }
+@media (max-height: 760px) { #panel { top: 3.1rem; transform: none; max-height: calc(100dvh - 4.1rem); } h1 { font-size: 1.9rem; } .intro { margin: 0.7rem 0 0.9rem; } }

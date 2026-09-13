@@ -15,7 +15,7 @@ const SPECS: Readonly<Record<MaterialKey, Spec>> = {
   'stone-patch': { pattern: 'flagstones', tile: 3, roughness: 0.95, surface: true },
   cobbles: { pattern: null, tile: 1, roughness: 0.9, surface: true },
   limestone: { pattern: 'ashlar', tile: 3, roughness: 0.92 },
-  brick: { pattern: 'brick', tile: 1.6, roughness: 0.9 },
+  brick: { pattern: 'brick', tile: 2.6, roughness: 0.9 },
   plaster: { pattern: 'plaster', tile: 3, roughness: 0.97 },
   timber: { pattern: 'planks', tile: 2, roughness: 0.85 },
   'dark-timber': { pattern: 'planks', tile: 2, roughness: 0.85 },
@@ -50,21 +50,23 @@ function shade(pattern: Pattern, seed: number): (x: number, y: number) => number
     case 'foliage': return (x, y) => 0.65 + 0.25 * low(x * 2, y * 2) + 0.1 * grain();
     case 'bark': return (x, y) => 0.68 + 0.2 * low(x * 3, y / 4) + 0.08 * grain();
     case 'flagstones': return (x, y) => {
-      const cell = 32, i = Math.floor(x / cell), j = Math.floor(y / cell), joint = Math.min(x % cell, y % cell, cell - (x % cell), cell - (y % cell));
-      return joint < 1.5 ? 0.5 : (rowTone[(i * 7 + j * 3) % 32] ?? 0.9) - 0.05 * grain();
+      // Irregular courses of worn slabs: random widths per row, soft joints, no modern tile grid.
+      const row = Math.floor(y / 32), width = 28 + ((offsets[row % 32] ?? 0) % 26), shifted = (x + (offsets[(row + 7) % 32] ?? 0)) % SIZE;
+      const joint = y % 32 < 1.5 || shifted % width < 1.5;
+      return joint ? 0.7 : (rowTone[(row * 5 + Math.floor(shifted / width)) % 32] ?? 0.9) - 0.05 * low(x, y) - 0.04 * grain();
     };
     case 'ashlar': return (x, y) => {
       const row = Math.floor(y / 16), shifted = (x + (offsets[row % 32] ?? 0)) % SIZE, block = Math.floor(shifted / 40);
-      const mortar = y % 16 < 1.5 || shifted % 40 < 1.5;
-      return mortar ? 0.62 : (rowTone[(row * 5 + block) % 32] ?? 0.9) - 0.04 * grain();
+      const mortar = y % 16 < 1.2 || shifted % 40 < 1.2;
+      return mortar ? 0.78 : (rowTone[(row * 5 + block) % 32] ?? 0.9) - 0.05 * low(x, y) - 0.03 * grain();
     };
     case 'brick': return (x, y) => {
       const row = Math.floor(y / 8), shifted = (x + (row % 2) * 12) % SIZE, mortar = y % 8 < 1 || shifted % 24 < 1;
-      return mortar ? 0.72 : (rowTone[(row * 3 + Math.floor(shifted / 24)) % 32] ?? 0.9) - 0.06 * grain();
+      return mortar ? 0.82 : (rowTone[(row * 3 + Math.floor(shifted / 24)) % 32] ?? 0.9) - 0.04 * grain();
     };
     case 'planks': case 'fence': return (x, y) => {
-      const column = Math.floor(x / 16), gap = x % 16 < (pattern === 'fence' ? 2.5 : 1);
-      return gap ? (pattern === 'fence' ? 0.3 : 0.55) : (rowTone[column % 32] ?? 0.9) + 0.05 * Math.sin(y * 0.35 + column * 1.7) - 0.05 * grain();
+      const column = Math.floor(x / 16), gap = x % 16 < (pattern === 'fence' ? 2 : 1);
+      return gap ? (pattern === 'fence' ? 0.5 : 0.66) : (rowTone[column % 32] ?? 0.9) + 0.05 * Math.sin(y * 0.35 + column * 1.7) - 0.04 * grain();
     };
     case 'shingles': return (x, y) => {
       const row = Math.floor(y / 10), shifted = (x + (row % 2) * 6) % SIZE, edge = y % 10 < 1.5 || shifted % 12 < 1;

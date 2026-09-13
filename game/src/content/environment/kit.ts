@@ -141,7 +141,7 @@ const VARIANTS: Readonly<Record<HouseVariant, { defaults: Dimensions; parts: (d:
       solidBox('plinth', 'structure', 'limestone', [plinthWidth, 0.35, d.depth + 0.16], { x: plinthCentre, y: 0.175, z: 0 }),
       solidBox('walls', 'structure', 'plaster', [side, 5.05, d.depth], { x: -centre, y: 2.875, z: 0 }),
       solidBox('walls', 'structure', 'plaster', [side, 5.05, d.depth], { x: centre, y: 2.875, z: 0 }),
-      solidBox('lintel', 'structure', 'dark-timber', [2.6, 2.8, d.depth], { x: 0, y: 4.0, z: 0 }),
+      solidBox('lintel', 'structure', 'timber', [2.6, 2.8, d.depth], { x: 0, y: 4.0, z: 0 }),
       solidBox('passage-sill', 'step', 'limestone', [2.6, 0.1, 0.4], { x: 0, y: 0.05, z: d.depth / 2 - 0.2 }),
       { componentId: 'passage-floor', role: 'surface', collision: 'surface', material: 'stone-patch',
         geometry: { kind: 'plane', size: [2.6, d.depth - 0.4] }, local: { x: 0, y: 0.008, z: -0.2 } },

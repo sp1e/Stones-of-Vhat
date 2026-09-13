@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- Development-only entry; Vite's default build input is index.html, so this page never ships. -->
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Stones of Vhat · Miljöprov</title>
+  </head>
+  <body>
+    <main id="environment-viewport" aria-label="Spelvy för miljöprovet"></main>
+    <div id="hud" aria-hidden="true">
+      <p class="brand">STONES OF VHAT · MILJÖPROV</p>
+      <p id="zone">Rådhusansats</p>
+    </div>
+    <div id="crosshair" hidden aria-hidden="true"></div>
+    <section id="panel" aria-labelledby="panel-title">
+      <p class="eyebrow">UTVECKLINGSPROV · PC · BLOCKOUT</p>
+      <h1 id="panel-title">Från Rådhuset<br />till S:t Per.</h1>
+      <p class="intro">Gå stråket genom Storgatan, portiken eller gränden, över den öppna platsen och fram till kyrkogårdsporten. Former och avstånd är skisser, inte uppmätt historia.</p>
+      <p id="status" role="status" aria-live="polite">Miljöprovet förbereds …</p>
+      <div class="actions">
+        <button id="start" type="button" disabled>Gå in i stråket →</button>
+        <button id="restart" class="secondary" type="button" disabled>Börja om</button>
+        <button id="reload" class="secondary" type="button" hidden>Ladda om sidan</button>
+      </div>
+      <div class="options">
+        <label for="spawn">Startpunkt</label>
+        <select id="spawn"></select>
+        <label for="tower">Rådhustornet 1510</label>
+        <select id="tower">
+          <option value="partial" selected>Hypotes A: murar påbörjade</option>
+          <option value="complete">Hypotes B: fullbordat torn</option>
+        </select>
+        <p class="fine-print">Startpunkt och tornhypotes gäller vid nästa omstart.</p>
+      </div>
+      <details id="controls">
+        <summary>Kontroller</summary>
+        <dl class="control-list">
+          <div><dt>WASD</dt><dd>Gå</dd></div>
+          <div><dt>Mus</dt><dd>Se dig omkring</dd></div>
+          <div><dt>Shift</dt><dd>Spring</dd></div>
+          <div><dt>Space</dt><dd>Hoppa</dd></div>
+          <div><dt>C</dt><dd>Huka</dd></div>
+          <div><dt>Esc / Tab</dt><dd>Pausa</dd></div>
+        </dl>
+      </details>
+      <details id="provenance">
+        <summary>Historiskt underlag och osäkerhet</summary>
+        <ul id="provenance-list"></ul>
+        <p class="fine-print">Slottet, Mårten Skinnares hus och Klosterkyrkan är dokumenterade framtida ankare utan geometri. Källorna står i docs/environment/source-ledger.md.</p>
+      </details>
+      <footer>BLOCKOUT&nbsp;&nbsp;/&nbsp;&nbsp;WASD&nbsp;&nbsp;MUS&nbsp;&nbsp;ESC</footer>
+    </section>
+    <script type="module" src="./src/lab/environmentLab.ts"></script>
+  </body>
+</html>
