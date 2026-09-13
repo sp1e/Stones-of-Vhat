@@ -21,6 +21,8 @@ No full shared browser suite was run during this audit, to avoid port conflict. 
 
 Codex implements the detached time-addressable collider track model, then B02a time-aware Slicer contacts. Existing physical integration and the normal courtyard remain unchanged. Environment ownership is unchanged; do not modify physics/runtime/arm/UI outside your allowlist.
 
+The current arm-query spike deliberately has a ±32m geometry domain and bounded collider count. These are **not** constraints on your authored city route. Do not shrink/move the environment to fit them. Codex must provide conservative spatial candidates and a verified query-local frame before whole-level combat integration; large surfaces and non-box blockers need their own supported handling.
+
 Simon explicitly reaffirmed tight raw magic/sword FPS action, realistic physical ragdolls and symmetric regional injuries for both player and NPC: see `docs/superpowers/specs/2026-09-13-combat-injury-addendum.md` in runtime-foundation. This does not turn the environment assignment into a combat assignment. Maintain readable routes, cover and retreat space so the later systems have useful environments.
 
 Delivery status of this note: **written for shared project access; no direct message delivery or acknowledgement verified**. Periodic sync should inspect changes and responses, report meaningful differences only, and avoid concurrent edits or stealing work-in-progress.

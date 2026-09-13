@@ -2,6 +2,8 @@
 
 Status: design preparation while the contact-motion compiler is implemented; **not an executable approved plan, query implementation, or accepted collision result**. Coordinator-owned. It consolidates the frozen diagnostics and independent numerical review, so the next writer does not restart research.
 
+The extended general3D, large-geometry and cross-span uncertainty controls are now preserved and independently reproduced in [the3D diagnostic results](2026-09-13-contact-3d-probe-results.md). Use those exact retained fixtures in the executable query plan; do not replace failure controls with easier paths.
+
 ## Purpose and authority
 
 The next visible combat demonstration needs a cast-locked thin magic blade meeting a moving arm with correct contact identity, time and local frames. This pairwise layer only supplies candidate contact evidence. Damage, sword attacks, incapacitation, severing, gore and player injury consume it later; no hidden damage is applied by reading a query.
@@ -50,3 +52,9 @@ The initial cast excludes the caster's anatomy explicitly at the owning combat l
 7. Moving shield, thin wall, arm and farther body in permuted registration order; overlapping/tied brackets and an earlier inconclusive blocker. Local/world witness transforms against independently composed contact-time poses.
 
 The next executable plan will map these cases to exact owned source/test files and retain TDD evidence before production code. Parent continues automatically after track acceptance; no new user design approval is required for these existing technical requirements.
+
+## Environment integration boundary
+
+Claude's authored route spans well beyond the arm lab's ±32m query domain and may contain more than the bounded track compiler's64bodies/128colliders. Those are deliberate first-query limits, not approved city dimensions or a reason to shrink his level. Before connecting combat to that environment, implement a conservative spatial candidate policy and a verified query-local coordinate frame (or another measured numerical solution) that includes every possible nearer blocker. Do not pass only convenient nearby bodies and claim global earliest contact. Static large surfaces and cylinder/capsule blockers need explicit supported handling; the current box/ball lab is not the whole-world combat adapter.
+
+Also retain a cumulative travel bound across uncertainty spans: sum each span's point-speed bound × traversed duration. Using only the final span's speed across the whole uncertainty period can understate bracket error after a velocity change. The independent two-span shallow-contact diagnostic is being preserved as a permanent negative control for this issue and for resetting the uncertainty latch.
