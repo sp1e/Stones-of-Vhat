@@ -4,6 +4,8 @@ Datum: 2026-09-05. Projekt: Game1. Status: **godkänd av Simon 2026-09-05** geno
 
 ## 1. Beslut och omfattning
 
+**Tillägg 2026-09-13:** [Rå strid och gemensamma skaderegler](2026-09-13-combat-injury-addendum.md) förtydligar att regional funktionsförlust, hälta och avskiljning gäller både spelare och NPC:er samt att kvalificerade svärdssnitt ska använda samma separationssystem. Tillägget har företräde där äldre text begränsar avskiljning till enbart Slicer. Det är godkända krav, inte färdig implementation.
+
 Simon har godkänt ett cirka 15–20 minuter långt systemdrivet kapitel kring Rådhuset och Rödtornet, i senmedeltida Vadstena med uttryckliga tidsbrott. Alla fem landmärken och fem magiskolor kvarstår i helhetsvisionen. Tillägg som ingår i kapitlet, inte skjuts till en senare vision:
 
 - Full magisk avståndsstrid utöver telekinesi och närstrid.

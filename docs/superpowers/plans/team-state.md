@@ -1,6 +1,22 @@
 # Game1 team state
 
-Updated 2026-09-08. Coordinator owns this file. The final dated Grip completion section is current; older chronological entries retain their original status. Current handoff: repository-root `.continue-here.md`.
+Updated 2026-09-13. Coordinator owns this file. The active section below is current; older chronological entries retain their historical status. Current handoff: repository-root `.continue-here.md`.
+
+## Active automatic continuation — contact motion and Claude sync
+
+Simon requested continuous development until stop, without routine approval checkpoints. Tests, ordered independent reviews, scoped Git writes and stop/pause handling remain mandatory. Thread heartbeat `stones-of-vhat-utveckling-och-claude-synk` is active at a 30-minute interval with single-writer/stop safeguards; no direct Claude message channel has been verified.
+
+User design update is recorded in `docs/superpowers/specs/2026-09-13-combat-injury-addendum.md`: raw magic/sword FPS combat, symmetric player/NPC regional injury and limb loss, gore default on. Current source has not implemented those full systems.
+
+Baseline `661636e`: parent strict/native **116/116 PASS, 83.098s**. Frozen rotating-contact diagnostic reproduced **36 cases, 33 hits/3 plane misses at both origins, max contact-position error 0.128440mm, all frozen assertions PASS**. This is scoped numerical evidence, not arbitrary CCD acceptance.
+
+| Assignment | Allocation | Reason / reassessment | Status |
+| --- | --- | --- | --- |
+| Claude read-only sync | Sol/high | Independent environment ownership/provenance/real-route audit while parent plans physics; reassess on unsafe overlap or invalid evidence | Committed scope sound; 21/21 focused native PASS, two concrete test/lifecycle follow-ups; coordinator note `docs/handoffs/claude-sync.md`, delivery unacknowledged |
+| Contact model numerical/plan review | Astra/high | Consequential angular interpolation and earliest-contact uncertainty contract | Plan SPEC PASS after explicit no-blocker and finite-derived-rate clauses |
+| Contact track compiler + native tests | Sol/high, one writer | Coupled two-file implementation with detailed contract while parent handles coordination and next query design | Active, owns only `game/src/physics/contactMotion.ts` and `game/tests/contactMotion.test.mjs`; no stage/commit authority |
+
+Executable current plan: `docs/superpowers/plans/2026-09-13-contact-motion-tracks-plan.md`. Implementer observes RED→GREEN; independent implementation SPEC then fresh QUALITY before parent full checks/commit. The next dependent contact query preserves uncertainty across native spans and does not sort overlapping hit intervals into false certainty. Claude's changing files stay untouched; remote environment branch presence is observed but its pushing actor/separate authorization is unknown. No automatic merge of that branch.
 
 ## Outcome and scope
 
