@@ -30,6 +30,19 @@ export type LinearContactCast = {
   startPose: RigidTransform;
   endPosition: Vec3;
 };
+export type ContactIntervalIdentity = {
+  worldEpoch: string;
+  fromTick: number;
+  toTick: number;
+  dtS: number;
+};
+
+export function validateLinearContactCast(
+  interval: ContactIntervalIdentity,
+  cast: LinearContactCast,
+): LinearContactCast {
+  return validateCast(interval, cast).cast;
+}
 type PairIdentity = {
   worldEpoch: string;
   fromTick: number;
@@ -137,11 +150,14 @@ function pose(value: RigidTransform, label: string): RigidTransform {
   return rigid(value);
 }
 
-function shape(value: ContactShape, label: string): { value: ContactShape; radiusM: number; native: RAPIER.Shape } {
+function checkedShape(value: ContactShape, label: string): { value: ContactShape; radiusM: number } {
   if (!value || typeof value !== 'object' || !('kind' in value)) throw new Error(`${label} shape is invalid`);
   if (value.kind === 'box') {
     if (!Array.isArray(value.size) || value.size.length !== 3) {
       throw new Error(`${label} box shape must have three dimensions`);
+    }
+    for (let index = 0; index < 3; index++) {
+      if (!Object.hasOwn(value.size, index)) throw new Error(`${label} box dimensions must be dense own entries`);
     }
     const size = Array.from({ length: 3 }, (_, index) => scalar(value.size[index]!, `${label}.size[${index}]`));
     if (size.some(dimension => dimension < .001 || Math.fround(dimension) === 0)) {
@@ -151,7 +167,6 @@ function shape(value: ContactShape, label: string): { value: ContactShape; radiu
     return {
       value: copied,
       radiusM: Math.hypot(size[0]! / 2, size[1]! / 2, size[2]! / 2),
-      native: new RAPIER.Cuboid(size[0]! / 2, size[1]! / 2, size[2]! / 2),
     };
   }
   if (value.kind === 'ball') {
@@ -159,49 +174,43 @@ function shape(value: ContactShape, label: string): { value: ContactShape; radiu
     if (radius * 2 < .001 || Math.fround(radius) === 0) {
       throw new Error(`${label} ball diameter must be at least 0.001m and nonzero in float32`);
     }
-    return { value: { kind: 'ball', radius }, radiusM: radius, native: new RAPIER.Ball(radius) };
+    return { value: { kind: 'ball', radius }, radiusM: radius };
   }
   throw new Error(`${label} has an unsupported shape geometry`);
+}
+
+function nativeShape(value: ContactShape): RAPIER.Shape {
+  return value.kind === 'box'
+    ? new RAPIER.Cuboid(value.size[0] / 2, value.size[1] / 2, value.size[2] / 2)
+    : new RAPIER.Ball(value.radius);
 }
 
 function sameRef(a: ColliderRef, b: ColliderRef): boolean {
   return a.worldEpoch === b.worldEpoch && a.bodyId === b.bodyId && a.colliderId === b.colliderId;
 }
 
-function prepare(motion: Motion, inputCast: LinearContactCast, inputTarget: ColliderRef): Prepared {
-  if (!motion || typeof motion !== 'object' || motion.model !== CONTACT_MOTION_MODEL
-    || typeof motion.colliders !== 'function' || typeof motion.sample !== 'function') {
-    throw new Error('Contact pair query requires the accepted contact motion model');
+function validateCast(
+  interval: ContactIntervalIdentity,
+  inputCast: LinearContactCast,
+): { cast: LinearContactCast; radiusM: number } {
+  if (!interval || typeof interval !== 'object') throw new Error('Contact interval identity must be an object');
+  nonempty(interval.worldEpoch, 'Contact interval world epoch');
+  if (!Number.isSafeInteger(interval.fromTick) || interval.fromTick < 0
+    || !Number.isSafeInteger(interval.toTick) || interval.toTick !== interval.fromTick + 1) {
+    throw new Error('Contact interval requires safe nonnegative adjacent ticks');
   }
-  nonempty(motion.worldEpoch, 'Motion world epoch');
-  if (!Number.isSafeInteger(motion.fromTick) || motion.fromTick < 0
-    || !Number.isSafeInteger(motion.toTick) || motion.toTick !== motion.fromTick + 1
-    || motion.dtS !== FIXED_DT) {
-    throw new Error('Contact pair query requires an adjacent fixed-tick motion interval');
-  }
+  if (interval.dtS !== FIXED_DT) throw new Error('Contact interval requires the fixed duration');
   if (!inputCast || typeof inputCast !== 'object') throw new Error('Cast must be an object');
   nonempty(inputCast.worldEpoch, 'Cast world epoch');
   nonempty(inputCast.castId, 'Cast id');
   nonempty(inputCast.projectileId, 'Projectile id');
-  if (inputCast.worldEpoch !== motion.worldEpoch || inputCast.fromTick !== motion.fromTick
-    || inputCast.toTick !== motion.toTick) {
-    throw new Error('Cast identity must exactly match the motion epoch and ticks');
+  if (inputCast.worldEpoch !== interval.worldEpoch || inputCast.fromTick !== interval.fromTick
+    || inputCast.toTick !== interval.toTick) {
+    throw new Error('Cast identity must exactly match the contact interval epoch and ticks');
   }
-  if (!inputTarget || typeof inputTarget !== 'object') throw new Error('Target reference is invalid');
-  nonempty(inputTarget.worldEpoch, 'Target world epoch');
-  nonempty(inputTarget.bodyId, 'Target body id');
-  nonempty(inputTarget.colliderId, 'Target collider id');
-  if (inputTarget.worldEpoch !== motion.worldEpoch) throw new Error('Target belongs to a stale world epoch');
-  const colliders = motion.colliders();
-  if (!Array.isArray(colliders)) throw new Error('Contact motion collider membership is invalid');
-  const targetRecord = colliders.find(collider => sameRef(collider.ref, inputTarget));
-  if (!targetRecord) throw new Error('Target is not a registered blocker collider');
   const startPose = pose(inputCast.startPose, 'Projectile start pose');
   const endPosition = vector(inputCast.endPosition, 'Projectile end position');
-  const projectile = shape(inputCast.shape, 'Projectile');
-  const target = shape(targetRecord.shape, 'Target');
-  const targetRadiusM = scalar(targetRecord.radiusFromBodyOriginM, 'Target radius from body origin');
-  if (targetRadiusM < 0) throw new Error('Target radius from body origin must be nonnegative');
+  const projectile = checkedShape(inputCast.shape, 'Projectile');
   const projectileVelocity = {
     x: (endPosition.x - startPose.position.x) / FIXED_DT,
     y: (endPosition.y - startPose.position.y) / FIXED_DT,
@@ -217,24 +226,65 @@ function prepare(motion: Motion, inputCast: LinearContactCast, inputTarget: Coll
       throw new Error(`Projectile ${label} extent exceeds the 32m contact domain`);
     }
   }
-  const cast: LinearContactCast = {
-    worldEpoch: inputCast.worldEpoch,
-    fromTick: inputCast.fromTick,
-    toTick: inputCast.toTick,
-    castId: inputCast.castId,
-    projectileId: inputCast.projectileId,
-    shape: projectile.value,
-    startPose: detachedPose(startPose),
-    endPosition: { ...endPosition },
+  return {
+    cast: {
+      worldEpoch: inputCast.worldEpoch,
+      fromTick: inputCast.fromTick,
+      toTick: inputCast.toTick,
+      castId: inputCast.castId,
+      projectileId: inputCast.projectileId,
+      shape: projectile.value,
+      startPose: detachedPose(startPose),
+      endPosition: { ...endPosition },
+    },
+    radiusM: projectile.radiusM,
   };
+}
+
+function prepare(motion: Motion, inputCast: LinearContactCast, inputTarget: ColliderRef): Prepared {
+  if (!motion || typeof motion !== 'object' || motion.model !== CONTACT_MOTION_MODEL
+    || typeof motion.colliders !== 'function' || typeof motion.sample !== 'function') {
+    throw new Error('Contact pair query requires the accepted contact motion model');
+  }
+  nonempty(motion.worldEpoch, 'Motion world epoch');
+  if (!Number.isSafeInteger(motion.fromTick) || motion.fromTick < 0
+    || !Number.isSafeInteger(motion.toTick) || motion.toTick !== motion.fromTick + 1
+    || motion.dtS !== FIXED_DT) {
+    throw new Error('Contact pair query requires an adjacent fixed-tick motion interval');
+  }
+  if (!inputTarget || typeof inputTarget !== 'object') throw new Error('Target reference is invalid');
+  nonempty(inputTarget.worldEpoch, 'Target world epoch');
+  nonempty(inputTarget.bodyId, 'Target body id');
+  nonempty(inputTarget.colliderId, 'Target collider id');
+  if (inputTarget.worldEpoch !== motion.worldEpoch) throw new Error('Target belongs to a stale world epoch');
+  const colliders = motion.colliders();
+  if (!Array.isArray(colliders)) throw new Error('Contact motion collider membership is invalid');
+  const targetRecord = colliders.find(collider => sameRef(collider.ref, inputTarget));
+  if (!targetRecord) throw new Error('Target is not a registered blocker collider');
+  const cast = validateLinearContactCast({
+    worldEpoch: motion.worldEpoch,
+    fromTick: motion.fromTick,
+    toTick: motion.toTick,
+    dtS: motion.dtS,
+  }, inputCast);
+  const target = checkedShape(targetRecord.shape, 'Target');
+  const targetRadiusM = scalar(targetRecord.radiusFromBodyOriginM, 'Target radius from body origin');
+  if (targetRadiusM < 0) throw new Error('Target radius from body origin must be nonnegative');
+  const projectileVelocity = {
+    x: (cast.endPosition.x - cast.startPose.position.x) / FIXED_DT,
+    y: (cast.endPosition.y - cast.startPose.position.y) / FIXED_DT,
+    z: (cast.endPosition.z - cast.startPose.position.z) / FIXED_DT,
+  };
+  vector(projectileVelocity, 'Projectile velocity');
+  const projectileSpeedMps = length(projectileVelocity);
   const targetRef = { ...inputTarget };
   return {
     motion,
     cast,
     target: targetRef,
     targetRadiusM,
-    projectileShape: projectile.native,
-    nativeTargetShape: target.native,
+    projectileShape: nativeShape(cast.shape),
+    nativeTargetShape: nativeShape(target.value),
     projectileVelocity,
     projectileSpeedMps,
     identity: {

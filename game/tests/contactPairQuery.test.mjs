@@ -28,6 +28,114 @@ test('provides a bounded world-free contact pair query', async () => {
   assert.equal(typeof await api.createContactPairQuery(), 'function');
 });
 
+test('exports pure linear-contact cast validation', () => {
+  assert.equal(typeof api.validateLinearContactCast, 'function');
+});
+
+test('pure validation applies the accepted cast contract and returns a detached normalized copy', () => {
+  const interval = { worldEpoch: 'query-epoch', fromTick: 10, toTick: 11, dtS: dt };
+  const input = castFixture({
+    start: vec(31.9995),
+    end: vec(31.9995),
+    rotation: { x: 0, y: 0, z: 0, w: 2 },
+    shape: { kind: 'ball', radius: .0005 },
+  });
+  input.startPose.scale = { x: 1 + 5e-9, y: 1, z: 1 };
+  const retained = structuredClone(input);
+  const result = api.validateLinearContactCast(interval, input);
+  assert.deepEqual(input, retained);
+  assert.deepEqual(result.startPose.rotation, identity);
+  assert.ok(!('scale' in result.startPose));
+  assert.notEqual(result, input);
+  assert.notEqual(result.shape, input.shape);
+  assert.notEqual(result.startPose, input.startPose);
+  assert.notEqual(result.endPosition, input.endPosition);
+  result.endPosition.x = 0;
+  result.shape.radius = 1;
+  assert.deepEqual(input, retained);
+
+  const exactSpeed = castFixture({ start: vec(), end: vec(128 * dt) });
+  assert.deepEqual(api.validateLinearContactCast(interval, exactSpeed), exactSpeed);
+
+  const invalids = [
+    [value => { value.worldEpoch = ''; }, /epoch|nonempty/i],
+    [value => { value.fromTick = -1; value.toTick = 0; }, /tick|nonnegative|adjacent/i],
+    [value => { value.dtS = dt / 2; }, /fixed|duration|interval/i, true],
+    [value => { value.castId = ''; }, /cast|nonempty/i],
+    [value => { value.projectileId = ''; }, /projectile|nonempty/i],
+    [value => { value.shape = { kind: 'capsule', radius: .1, halfHeight: .1 }; }, /shape|geometry/i],
+    [value => { value.shape = { kind: 'ball', radius: .00049 }; }, /diameter|dimension/i],
+    [value => { value.shape = { kind: 'ball', radius: 1e-50 }; }, /float32|diameter|dimension/i],
+    [value => { value.shape = { kind: 'box', size: [.1, .1] }; }, /three|dimension/i],
+    [value => {
+      const size = [.1, .1, .1];
+      delete size[1];
+      const inherited = Object.create(Array.prototype);
+      inherited[1] = .1;
+      Object.setPrototypeOf(size, inherited);
+      value.shape = { kind: 'box', size };
+    }, /dense|own|dimension/i],
+    [value => { value.shape = { kind: 'box', size: [.1, .1, .00099] }; }, /dimension|0\.001/i],
+    [value => { value.endPosition.x = Infinity; }, /finite|float32/i],
+    [value => { value.startPose.rotation.w = 0; }, /quaternion|rigid/i],
+    [value => { value.startPose.scale = { x: 1.00000002, y: 1, z: 1 }; }, /scale|rigid/i],
+    [value => { value.endPosition.x = 128 * dt + 1e-8; }, /speed|128/i],
+    [value => { value.startPose.position.x = 31.95; value.endPosition.x = 31.95; }, /extent|32/i],
+  ];
+  for (const [mutate, pattern, mutateInterval] of invalids) {
+    const cast = castFixture({ start: vec(), end: vec() });
+    const candidateInterval = { ...interval };
+    mutate(mutateInterval ? candidateInterval : cast);
+    assert.throws(() => api.validateLinearContactCast(candidateInterval, cast), pattern);
+  }
+  assert.throws(() => api.validateLinearContactCast({ ...interval, worldEpoch: 'other' }, castFixture()), /identity|epoch/i);
+});
+
+test('pure validation neither initializes Rapier nor allocates or queries native shapes', () => {
+  const script = String.raw`
+    const originalInstantiate = WebAssembly.instantiate;
+    let initializationCalls = 0;
+    WebAssembly.instantiate = async (...args) => {
+      initializationCalls += 1;
+      return originalInstantiate(...args);
+    };
+    const RAPIER = (await import('@dimforge/rapier3d-compat')).default;
+    const originals = {
+      ballIntoRaw: RAPIER.Ball.prototype.intoRaw,
+      cuboidIntoRaw: RAPIER.Cuboid.prototype.intoRaw,
+      contactShape: RAPIER.Shape.prototype.contactShape,
+    };
+    let nativeCalls = 0;
+    RAPIER.Ball.prototype.intoRaw = function (...args) { nativeCalls += 1; return originals.ballIntoRaw.apply(this, args); };
+    RAPIER.Cuboid.prototype.intoRaw = function (...args) { nativeCalls += 1; return originals.cuboidIntoRaw.apply(this, args); };
+    RAPIER.Shape.prototype.contactShape = function (...args) { nativeCalls += 1; return originals.contactShape.apply(this, args); };
+    try {
+      const api = await import('./src/physics/contactPairQuery.ts?pure-validator-native-control');
+      const interval = { worldEpoch: 'pure', fromTick: 0, toTick: 1, dtS: 1 / 60 };
+      for (const shape of [{ kind: 'ball', radius: .01 }, { kind: 'box', size: [.01, .02, .03] }]) {
+        api.validateLinearContactCast(interval, {
+          worldEpoch: 'pure', fromTick: 0, toTick: 1, castId: 'cast', projectileId: shape.kind,
+          shape, startPose: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+          endPosition: { x: 0, y: 0, z: 0 },
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 20));
+      if (initializationCalls !== 0 || nativeCalls !== 0) {
+        throw new Error('pure validation crossed a native boundary');
+      }
+    } finally {
+      RAPIER.Ball.prototype.intoRaw = originals.ballIntoRaw;
+      RAPIER.Cuboid.prototype.intoRaw = originals.cuboidIntoRaw;
+      RAPIER.Shape.prototype.contactShape = originals.contactShape;
+      WebAssembly.instantiate = originalInstantiate;
+    }
+  `;
+  assert.doesNotThrow(() => execFileSync(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: new URL('..', import.meta.url),
+    stdio: 'pipe',
+  }));
+});
+
 test('does not initialize Rapier until the factory is called and shares one concurrent initialization', () => {
   const script = String.raw`
     const originalInstantiate = WebAssembly.instantiate;
