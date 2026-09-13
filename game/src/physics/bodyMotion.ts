@@ -3,6 +3,7 @@ import type { Shape, Vec3 } from '../content/yardLayout.ts';
 import { finiteVector, rigid } from './poseBinding.ts';
 import type { RigidTransform } from './poseBinding.ts';
 import { FIXED_DT } from '../runtime/fixedStep.ts';
+import { createNativeMotionTrace } from './nativeMotionTrace.ts';
 
 export type BodyRef = { worldEpoch: string; bodyId: string };
 export type ColliderRef = BodyRef & { colliderId: string };
@@ -29,12 +30,21 @@ export type BodyEndpoint = {
   sleeping: boolean;
   colliders: { ref: ColliderRef; role: 'blocker' | 'navigation'; localPose: RigidTransform; shape: MotionShape }[];
 };
+export type NativeMotionSample = {
+  offsetS: number;
+  bodies: { ref: BodyRef; endpoint: BodyEndpoint }[];
+};
+export type NativeMotionTrace = {
+  kind: 'measured-native-boundaries';
+  samples: NativeMotionSample[];
+};
 export type MotionInterval = {
   worldEpoch: string;
   kind: 'initial' | 'completed';
   fromTick: number;
   toTick: number;
   dtS: number;
+  nativeTrace?: NativeMotionTrace;
   bodies: { ref: BodyRef; from: BodyEndpoint; to: BodyEndpoint; discontinuities: ('shape' | 'authority')[] }[];
 };
 
@@ -120,6 +130,17 @@ export function createBodyMotion(world: RAPIER.World, sources: readonly MotionSo
       }
     }
   }
+  const captureBodies = (): NativeMotionSample['bodies'] => {
+    for (const source of sources) {
+      const ref = { worldEpoch, bodyId: source.bodyId };
+      assertRef(ref);
+      for (const collider of source.colliders) assertRef({ ...ref, colliderId: collider.colliderId });
+    }
+    return sources.map(source => ({
+      ref: { worldEpoch, bodyId: source.bodyId }, endpoint: capture(source),
+    }));
+  };
+  const nativeTrace = createNativeMotionTrace(captureBodies);
   return {
     worldEpoch,
     ref(bodyId: string): BodyRef {
@@ -129,21 +150,31 @@ export function createBodyMotion(world: RAPIER.World, sources: readonly MotionSo
     },
     assertRef,
     read(): MotionInterval { alive(); return structuredClone(interval); },
-    /** Owner-only: publish after a successfully completed authoritative fixed integration interval/batch; never advances native time. */
+    /** Owner-only: begin after boundary handoff, before the first native step. */
+    beginNativeTrace(): void { alive(); nativeTrace.begin(interval); },
+    /** Measured owner-native boundary, not a CCD subsolve or continuous path. */
+    captureNativeStep(offsetS: number): void { alive(); nativeTrace.capture(offsetS); },
+    /** Publish only after all native writes and captures succeed; never advances time. */
     completeStep(): void {
       alive();
-      const bodies = interval.bodies.map(previous => {
-        assertRef(previous.ref);
-        const source = entries.get(previous.ref.bodyId)!;
-        const from = previous.to, to = capture(source);
+      const current = captureBodies();
+      const trace = nativeTrace.prepare(current);
+      const bodies = interval.bodies.map((previous, index) => {
+        const from = previous.to, to = current[index]!.endpoint;
+        const sequence = [from, ...(trace?.samples.map(sample => sample.bodies[index]!.endpoint) ?? []), to];
         const discontinuities: ('shape' | 'authority')[] = [];
-        if (JSON.stringify(from.colliders.map(collider => collider.shape)) !== JSON.stringify(to.colliders.map(collider => collider.shape))) {
+        const shapes = (endpoint: BodyEndpoint) => JSON.stringify(endpoint.colliders.map(collider => collider.shape));
+        if (sequence.some((endpoint, i) => i > 0 && shapes(endpoint) !== shapes(sequence[i - 1]!))) {
           discontinuities.push('shape');
         }
-        if (from.authority !== to.authority) discontinuities.push('authority');
+        if (sequence.some((endpoint, i) => i > 0 && endpoint.authority !== sequence[i - 1]!.authority)) {
+          discontinuities.push('authority');
+        }
         return { ref: previous.ref, from, to, discontinuities };
       });
-      interval = { worldEpoch, kind: 'completed', fromTick: interval.toTick, toTick: interval.toTick + 1, dtS: FIXED_DT, bodies };
+      interval = { worldEpoch, kind: 'completed', fromTick: interval.toTick, toTick: interval.toTick + 1,
+        dtS: FIXED_DT, bodies, ...(trace ? { nativeTrace: trace } : {}) };
+      nativeTrace.clear();
     },
     destroy(): void {
       if (destroyed) return;
@@ -152,6 +183,8 @@ export function createBodyMotion(world: RAPIER.World, sources: readonly MotionSo
       registeredBodies.clear();
       registeredColliders.clear();
       sources = [];
+      nativeTrace.clear();
+      delete interval.nativeTrace;
       interval.bodies = [];
     },
   };
