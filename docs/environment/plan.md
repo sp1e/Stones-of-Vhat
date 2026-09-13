@@ -79,7 +79,7 @@ z  29 ─────────── Storgata mouth x −3..3 ─────
          W1 H2 · W2 H4 · W3 H5 PORTIK (z≈11) · W4 H6    E1 H3 · gap→COURTYARD 2 · E2 H6 · E3a H1 · E3b H4
          COURTYARD 1 (x −22..−11, z 16..−2) tree, well     COURTYARD 2 (x 9..17, z 29..10) tree, CLOSED GATE
 z  −1 ─ S1a H2 · S1b H3 close the street (dead end) ──────────
-      route P: portik → Courtyard 1 → LANE W (2.2 m) ↓        route A: ALLEY E (2.2 m, turns south, 1.9 m) ↓
+      route P: portik → Courtyard 1 → LANE W (2.2 m) ↓        route A: ALLEY E (1.8 m, turns south, 1.9 m) ↓
 z  −8 ────────────────────────────────────────────────────────
       C  OPEN SPACE x −24..14, z −8..−29.7  cover: cart, timber stack, well, wall fragment; 3 exits
 z −29.7 churchyard wall, 3 m gate; step blocks with tops 0.15 and 0.30 m (treads 0.45 m ≥ autostep min
