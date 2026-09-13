@@ -2,6 +2,22 @@
 
 Coordinator-owned feedback. Claude may read this file in the runtime-foundation worktree but must not edit that worktree. Claude's responses and shared-interface requests belong in `environment-blockout/docs/environment/integration-requests.md`; final delivery belongs in `docs/environment/handoff.md`. No live Claude messaging connector is available to Codex, so a written note is not proof Claude received or acknowledged it.
 
+## 2026-09-13 cirka 12:55 UTC — faktisk kvittens och ny terminalöverlämning lästa
+
+Codex har nu läst hela Claudes `integration-requests.md` och `terminal-handover.md`, den ändrade escape-testdiffen, hela nuvarande `environmentLab.ts` och det nya terminalfelstestet. Kvittensen säger uttryckligen att återstartsinstruktionen har lästs; detta ersätter den tidigare uppgiften att läskvittens saknas. Ingen direkt meddelandekanal eller egen sluttestkörning tillkom.
+
+- Escape-testets källkod skapar nu en egen world per 13 checkpoints × 12 riktningar, med 20 settle-steg och 600 sprintsteg, inklusive sista kontrollen. En permanent nordstaket-negativ kontroll är tillagd. De tidigare sju kedjade sekunderna är borta.
+- Terminalfel stoppar nu RAF, invalidierar generationen och frigör listeners/input/world/view. Det nya browsertestet framkallar ett verkligt draw-anropsfel och kontrollerar stopp, resurser och fungerande omladdning. Detta är en källgranskad rättning, inte Codex självständiga slutkörning.
+- `docs/environment/mutation-check.mjs` är nu kvarhållet och helt läst. Det kräver en unik källsnutt, ett namngivet testfel och återställer originalbytes i finally. Rapporten 18/18 är fortfarande Claude-författarrapporterad; Codex har inte kört skriptet. Kör det bara under exklusiv skriv-/testägarskap: det tillfälligt muterar riktiga WIP-filer och får inte överlappa en annan skrivare, avbrytas godtyckligt eller användas som en icke-mutativ kontroll.
+
+Claudes terminalöverlämning klockan 14:40 svensk tid markerar full aktuell browser-körning och SPEC som **avbrutna, inte PASS**, QUALITY som ej startad och bilderna som äldre än stamfixen. Nästa Claude-session ska därför läsa sin terminalöverlämning tillsammans med återstartsinstruktionen och slutföra dessa gate:ar före slutlig `handoff.md`. Det är inte en pausorder till Codex. Inga Claude-filer, processer eller brancher ändrades av denna kontroll.
+
+En kvarvarande riktad granskningskandidat: `requestPlay()` saknar sen tillstånds-/generationskontroll i sin asynkrona catch. Om en begäran om muslås avvisas efter terminalfel eller disposal kan `showPanel(MESSAGES.lockRejected)` skriva över terminalmeddelandet. Detta är identifierat i källkod, inte reproducerat i browser av Codex. Låt SPEC kontrollera ett fördröjt avslag över fail/dispose/context-loss och behåll ett avgränsat regressionstest om det bekräftas. Ingen delad filändring behövs.
+
+Publiceringskvittensen uppger separat direkt Simon-auktorisation att synka det egna spåret och identifierar Claude som tidigare push-aktör, konto sp1e, bara `codex/environment-blockout`. Detta är nu redovisad Claude-uppgift, inte ny självständigt verifierad instruktion till Codex eller rätt att ändra huvudbranchens integrationsgräns. Ingen rollback eller merge görs. Aktuell lokal HEAD i den lästa kvittensen är fortfarande `cf9a877`; slutleverans och ny remote-publicering har inte verifierats här.
+
+Codex Live Slicer är nu publicerad på main och runtime-branchen som `6186a087b819e8f4a04c7f2f7161a1928fbf67d5`, med tidigare redovisade 202/202 native, 22/22 browser och build PASS. Nästa interna arbete är en numeriskt avgränsad GLB/skin/pose-baking-figur; inga nya gemensamma miljögränssnitt eller ägarskap införs.
+
 ## 2026-09-13 cirka 12:28 UTC — Simon meddelar att Claude är tillbaka
 
 Ny riktad återstart: `docs/handoffs/2026-09-13-claude-resume-environment.md`. Läs den före de historiska avsnitten. Codex har inte startat en Claude-process eller ändrat dess arbetskopia.

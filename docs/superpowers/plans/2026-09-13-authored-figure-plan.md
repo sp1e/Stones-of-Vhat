@@ -4,6 +4,8 @@
 
 ## Outcome
 
+**2026-09-13 execution routing:** Live Slicer is accepted/published as `6186a08`. The first bounded executable subset is now specified in `2026-09-13-technical-figure-contract.md` and `2026-09-13-technical-figure-core-plan.md`, currently under independent internal contract review. Use that exact core boundary after contract PASS, not the broader historical task list below. No figure writer/export/install has started at this note.
+
 **Coordinator method update:** the later geometry review rejects hiding a 68–150 mm elbow region as a believable cut. Read the final sections of `2026-09-13-elbow-skin-seam-options.md`: the preferred candidate retains the exterior by pose-baking pre-authored seam halves/caps into their respective components, without changing original inverse binds or inventing cut topology. The old visibility-only instructions below are superseded where they conflict. This draft needs that method, exact numeric authoring data and actual Three shader-normal semantics reconciled before it can become executable. Do not assign its tasks from the outdated bridge wording.
 
 Move from copper boxes to an actual project-authored, skinned adult technical figure with one cloth-covered deforming elbow, two LODs and two independent runtime instances. Demonstrate a real exported animation and prepared closed cap presentation. Keep the remaining full-body physics, injury and valid-contact transaction work explicit: a visual cap preview is **not** a severing command, damage event or completed B03.

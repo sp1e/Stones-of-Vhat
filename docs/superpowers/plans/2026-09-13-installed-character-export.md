@@ -18,6 +18,8 @@ The background inspection did not open a GUI, save preferences, export assets or
 
 ## Supported first-proof recipe, still to exercise with an authored file
 
+**Later core-contract override:** the proposed exact `2026-09-13-technical-figure-contract.md` now requires `export_attributes=True` for a POINT/FLOAT `_SVH_VERTEX` semantic key. This deliberately overrides the earlier false flag in the inventory recipe below. Actual raw/processed key preservation remains untested. The core also defers all physics metadata, so the older generic proxy-data checklist is not an instruction to invent colliders in this figure.
+
 Use one dedicated export collection and one intended runtime armature. Author source in Blender-native metres,+Z up, forward+Y; verify the exported result is runtime+Y up/forward−Z with `export_yup=True`. The actual project validator must measure that basis rather than rely on a name or convention claim.
 
 The inspected operator supports the following proposed settings. They are explicit **inputs for the future retained exporter**, not an executed export or its validation result:
@@ -97,3 +99,9 @@ At11:34–11:35UTC on2026-09-13, parent opened the official [Khronos validator r
 - `@gltf-transform/cli` reported `4.5.0`, Node engine `>=20`, integrity `sha512-0i/qco9bR1tva3wI7iksrdcQoZmgFn4WFMJnKOWqXWdX/a2T+mrNomfGUEfFqMSI26JPSZXqasXyHiytiEpodQ==`. Its published dependency list includes the Khronos validator plus Sharp, meshoptimizer and Draco. This is a larger tool dependency graph than merely reading a GLB.
 
 The official CLI supports selective operations and warns that its combined optimization defaults may not fit every scene. For this anatomical asset, do not apply a generic flatten/join/simplify/prune recipe that can remove proxy, cap, attachment or stable-ID nodes. Prefer a retained selective lossless pass and validate both input/output against our contract; inspect installed help/source after a future explicit pinned local dev-tool installation. No runtime decoder is needed for the uncompressed first proof. No global install, package/lock modification, fetched executable, source asset upload or model export occurred during this registry check.
+
+## Later bounded tool selection — still not installed
+
+At approximately 12:35 UTC, fresh registry queries returned `@gltf-transform/core` and `@gltf-transform/functions` 4.5.0, plus the same Khronos validator 2.0.0-dev.3.10. The proposed core plan selects these exact local dev dependencies instead of the larger CLI. Functions has its own transitive dependency graph; no claim is made that this avoids all native dependencies. A local `--ignore-scripts` install, lock review and actual pinned API inspection remain tasks after contract PASS.
+
+The coordinator read the documented `dedup` property-type selection and proposes ACCESSOR-only deduplication, preserving logical meshes/materials/nodes and animation sampling. This is a selected future operation, not a processed or validated asset. The coordinator also read the installed Blender custom-attribute extraction path: enabled underscore-prefixed FLOAT/POINT data is supported in source, but actual export and glTF Transform preservation are explicit tests, not inferred success.

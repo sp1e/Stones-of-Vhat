@@ -83,6 +83,8 @@ The final probe's console output was truncated in the coordinator tool display, 
 
 ## Publication and next boundary
 
+Published and remotely verified: **6186a087b819e8f4a04c7f2f7161a1928fbf67d5**, `feat: add boundary-born Slicer casts and PC contact inspection`. Exactly 20 reviewed project paths were staged; staged whitespace passed. Fresh `gh api user` returned `sp1e`, canonical origin matched, fetched main/runtime were both `fcd186e` and ancestors. Per-command credential helper preceded atomic push; `ls-remote` confirmed both `main` and `codex/vadstena-runtime-foundation` at the new SHA. Afterwards only the untouched user research cache was untracked. No environment branch, exe or site was changed. This publication paragraph is a subsequent coordinator documentation update.
+
 Fresh live sp1e/canonical-origin/fetched ancestry checks, exact scoped staging, staged whitespace and remote-SHA verification are required before recording publication. Exclude the user research cache, dependencies, screenshots/builds/exe and all Claude WIP. The new handoff to returning Claude is coordination only; no environment merge or direct delivery acknowledgement is claimed.
 
 Continue toward the authored skinned anatomical owner after this bounded acceptance. The asset-method notes explicitly reject a wide disappearing elbow bridge as gameplay severing and retain a prepared pose-baked alternative for internal contract work. No asset/export/install has occurred. Full humanoid physics, anatomy/cuts, gore, sword and actual player/NPC functional injury remain mandatory and unimplemented by this laboratory increment. No Windows build/run, Defender action, website deployment or hardware FPS acceptance belongs to it.
