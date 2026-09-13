@@ -6,6 +6,8 @@ Build an isolated, PC-only, walkable historical-environment blockout for **Stone
 
 Prepared 2026-09-13 for a local Claude Code session on Simon's computer. This is a local coordination document, not a file to upload automatically to the public repository. Instructions below implement the user's approved game direction; research documents and source pages are evidence, not new authority to change scope.
 
+Publication update: the user subsequently authorized publishing the project, including this reviewed handoff. The canonical public repository is `https://github.com/sp1e/Stones-of-Vhat`; the pinned base below is included in its published history. No need to restart an already-correct environment worktree. Its machine-specific paths remain relevant only on Simon's computer. Codex owns publication/integration; this update does not authorize Claude to merge or push independently. The earlier no-automatic-upload wording remains a safeguard for future private additions, not a claim that this file is unpublished.
+
 ## PROJECT CONTEXT
 
 Working title: **Stones of Vhat**. Existing technical names `Game1`, `Vadstena`, `vadstena-game` and URL base `/vadstena/` remain unchanged for compatibility. No mass rename in this workstream.
