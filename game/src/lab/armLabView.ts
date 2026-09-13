@@ -2,6 +2,21 @@ import * as THREE from 'three';
 import type { ArmSnapshot } from '../physics/armFixture.ts';
 import type { RigidTransform } from '../physics/poseBinding.ts';
 import { armTraceFrame } from './armLabTrace.ts';
+import type { ArmContactFrame } from './armContactFrame.ts';
+import type { ArmSlicerBlade, ArmSlicerTerminalRecord } from './armSlicer.ts';
+
+export type ArmLabSpell = {
+  castId: string;
+  projectileId: string;
+  blade: ArmSlicerBlade;
+  position: { x: number; y: number; z: number };
+};
+export type ArmLabViewState = {
+  nativeSampleIndex?: number | null;
+  activeSlicers?: readonly ArmLabSpell[];
+  lastCast?: ArmSlicerTerminalRecord | null;
+  contactInspection?: { frame: ArmContactFrame; record: ArmSlicerTerminalRecord } | null;
+};
 
 /** One reusable view; simulation owns every segment pose. */
 export function createArmLabView(host: HTMLElement) {
@@ -63,10 +78,70 @@ export function createArmLabView(host: HTMLElement) {
     return helper;
   }));
 
+  const bladeGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const bladeMaterial = new THREE.MeshStandardMaterial({
+    color: '#dceff0', emissive: '#73989a', emissiveIntensity: .35,
+    roughness: .32, metalness: .18, transparent: true, opacity: .9,
+  });
+  const activeBlades = Array.from({ length: 8 }, () => {
+    const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+    blade.visible = false;
+    blade.renderOrder = 4;
+    scene.add(blade);
+    return blade;
+  });
+  const inspectionBlade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+  inspectionBlade.visible = false;
+  inspectionBlade.renderOrder = 4;
+  scene.add(inspectionBlade);
+
+  const pathPositions = new Float32Array(6);
+  const pathGeometry = new THREE.BufferGeometry();
+  pathGeometry.setAttribute('position', new THREE.BufferAttribute(pathPositions, 3));
+  const pathMaterial = new THREE.LineBasicMaterial({ color: '#c9e4e3', transparent: true, opacity: .82 });
+  const path = new THREE.Line(pathGeometry, pathMaterial);
+  path.visible = false;
+  path.renderOrder = 4;
+  scene.add(path);
+
+  const normalPositions = new Float32Array(6);
+  const normalGeometry = new THREE.BufferGeometry();
+  normalGeometry.setAttribute('position', new THREE.BufferAttribute(normalPositions, 3));
+  const normalMaterial = new THREE.LineBasicMaterial({ color: '#e8c474' });
+  const contactNormal = new THREE.Line(normalGeometry, normalMaterial);
+  contactNormal.visible = false;
+  contactNormal.renderOrder = 5;
+  scene.add(contactNormal);
+
+  const witnessGeometry = new THREE.SphereGeometry(.013, 10, 6);
+  const projectileWitnessMaterial = new THREE.MeshBasicMaterial({ color: '#dceff0', depthTest: false });
+  const targetWitnessMaterial = new THREE.MeshBasicMaterial({ color: '#e8c474', depthTest: false });
+  const projectileWitness = new THREE.Mesh(witnessGeometry, projectileWitnessMaterial);
+  const targetWitness = new THREE.Mesh(witnessGeometry, targetWitnessMaterial);
+  projectileWitness.visible = false;
+  targetWitness.visible = false;
+  projectileWitness.renderOrder = 5;
+  targetWitness.renderOrder = 5;
+  scene.add(projectileWitness, targetWitness);
+
   let disposed = false;
   const setPose = (item: THREE.Object3D, pose: RigidTransform) => {
     item.position.set(pose.position.x, pose.position.y, pose.position.z);
     item.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
+  };
+  const setBlade = (item: THREE.Mesh, blade: ArmSlicerBlade, position: { x: number; y: number; z: number }) => {
+    item.position.set(position.x, position.y, position.z);
+    item.quaternion.identity();
+    if (blade === 'horizontal') item.scale.set(.12, .01, .12);
+    else item.scale.set(.01, .12, .12);
+    item.visible = true;
+  };
+  const setLine = (line: THREE.Line, values: Float32Array, from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }) => {
+    values.set([from.x, from.y, from.z, to.x, to.y, to.z]);
+    const attribute = line.geometry.getAttribute('position') as THREE.BufferAttribute;
+    attribute.needsUpdate = true;
+    line.geometry.computeBoundingSphere();
+    line.visible = true;
   };
   const resize = () => {
     if (disposed) return;
@@ -81,9 +156,11 @@ export function createArmLabView(host: HTMLElement) {
 
   return {
     canvas,
-    render(snapshot: ArmSnapshot, sampleIndex: number | null = null): void {
+    render(snapshot: ArmSnapshot, state: ArmLabViewState = {}): void {
       if (disposed) return;
-      const historical = sampleIndex === null ? null : armTraceFrame(snapshot, sampleIndex);
+      const sampleIndex = state.nativeSampleIndex ?? null;
+      const historical = state.contactInspection?.frame
+        ?? (sampleIndex === null ? null : armTraceFrame(snapshot, sampleIndex));
       const segments = historical?.segments ?? snapshot.segments;
       const selectedAnchors = historical?.anchorsWorld ?? snapshot.metrics.anchorsWorld;
       for (const [index, item] of [upper, lower].entries()) {
@@ -102,6 +179,46 @@ export function createArmLabView(host: HTMLElement) {
           }
         }
       }
+      for (let index = 0; index < activeBlades.length; index++) {
+        const spell = state.activeSlicers?.[index];
+        const blade = activeBlades[index]!;
+        blade.visible = false;
+        if (spell) setBlade(blade, spell.blade, spell.position);
+      }
+      inspectionBlade.visible = false;
+      path.visible = false;
+      contactNormal.visible = false;
+      projectileWitness.visible = false;
+      targetWitness.visible = false;
+      const selected = state.contactInspection?.record;
+      const shownPath = selected ?? state.lastCast;
+      if (shownPath) {
+        setLine(path, pathPositions, shownPath.startPosition, shownPath.terminalPosition);
+        pathMaterial.color.set(shownPath.kind === 'blocked' || shownPath.kind === 'unresolved' ? '#d7a95a' : '#c9e4e3');
+      }
+      if (selected) {
+        setBlade(inspectionBlade, selected.blade, selected.terminalPosition);
+        if (selected.kind === 'hit' && selected.family.kind === 'hit') {
+          const geometry = selected.family.hit.geometry;
+          projectileWitness.position.set(
+            geometry.projectileWitnessWorld.x,
+            geometry.projectileWitnessWorld.y,
+            geometry.projectileWitnessWorld.z,
+          );
+          targetWitness.position.set(
+            geometry.targetWitnessWorld.x,
+            geometry.targetWitnessWorld.y,
+            geometry.targetWitnessWorld.z,
+          );
+          projectileWitness.visible = true;
+          targetWitness.visible = true;
+          setLine(contactNormal, normalPositions, geometry.targetWitnessWorld, {
+            x: geometry.targetWitnessWorld.x + geometry.targetNormalWorld.x * .12,
+            y: geometry.targetWitnessWorld.y + geometry.targetNormalWorld.y * .12,
+            z: geometry.targetWitnessWorld.z + geometry.targetNormalWorld.z * .12,
+          });
+        }
+      }
       renderer.render(scene, camera);
     },
     resources() {
@@ -109,6 +226,13 @@ export function createArmLabView(host: HTMLElement) {
         geometries: renderer.info.memory.geometries,
         textures: renderer.info.memory.textures,
         programs: renderer.info.programs?.length ?? 0,
+        visible: {
+          activeBlades: activeBlades.filter(blade => blade.visible).length,
+          path: path.visible,
+          inspectionBlade: inspectionBlade.visible,
+          witnesses: Number(projectileWitness.visible) + Number(targetWitness.visible),
+          normal: contactNormal.visible,
+        },
       };
     },
     destroy(): void {
@@ -129,6 +253,17 @@ export function createArmLabView(host: HTMLElement) {
         for (const material of Array.isArray(helper.material) ? helper.material : [helper.material]) material.dispose();
         scene.remove(helper);
       }
+      for (const blade of activeBlades) scene.remove(blade);
+      scene.remove(inspectionBlade, path, contactNormal, projectileWitness, targetWitness);
+      bladeGeometry.dispose();
+      bladeMaterial.dispose();
+      pathGeometry.dispose();
+      pathMaterial.dispose();
+      normalGeometry.dispose();
+      normalMaterial.dispose();
+      witnessGeometry.dispose();
+      projectileWitnessMaterial.dispose();
+      targetWitnessMaterial.dispose();
       scene.clear();
       renderer.dispose();
       renderer.forceContextLoss();

@@ -2,6 +2,16 @@
 
 Coordinator-owned feedback. Claude may read this file in the runtime-foundation worktree but must not edit that worktree. Claude's responses and shared-interface requests belong in `environment-blockout/docs/environment/integration-requests.md`; final delivery belongs in `docs/environment/handoff.md`. No live Claude messaging connector is available to Codex, so a written note is not proof Claude received or acknowledged it.
 
+## 2026-09-13 cirka 12:28 UTC — Simon meddelar att Claude är tillbaka
+
+Ny riktad återstart: `docs/handoffs/2026-09-13-claude-resume-environment.md`. Läs den före de historiska avsnitten. Codex har inte startat en Claude-process eller ändrat dess arbetskopia.
+
+Aktuell lokal environment-HEAD är `cf9a87711a61066d33aa0fd11c4465556c95cded`, med ny stam/krona-fix och regressionstest efter tidigare `9f155d8`. Diffen är läst, inte självständigt sluttestad. `measurements.md` har också nya okommitterade uppgifter; övrig tidigare WIP är bevarad. Den gamla restart-point är därför historisk. Någon final handoff/integration-requests fanns ännu inte vid denna läsning, och ingen direkt meddelande-/läskvittens är verifierad.
+
+Ny källäsning bekräftar att den kedjade 7-sekunders escape-svepningen, fortsatt RAF efter terminalt frame-fel och scratch-mutationernas reproducerbarhetslucka ännu finns i de lästa filerna. Den nya instruktionen prioriterar dessa tre före slutliga bilder, oberoende granskning och egna slutkörningar. Claudes branch fortsätter lokalt; denna instruktion ändrar inte den ursprungliga reservationen av push/integration till Codex och säger inte vem som tidigare har publicerat.
+
+Codex nuvarande arbete: Live Slicer SPEC PASS följt av QUALITY APPROVE; parent 202/202 strict/native och 22/22 browser PASS. Slutbilder och publicering återstår i runtime-foundation. Det är ett utvecklingslabb, inte anatomi/FPS-skador. Miljön ska inte anpassas till labbets begränsade query-domän. Inget delat gränssnitt eller filägarskap har ändrats.
+
 ## 2026-09-13 initial read-only sync
 
 Reviewed base `20d9cf5c7578656f59bebfaf5b5594145971f1ff` through environment HEAD `9f155d8add1cf36c0972a3bd6674c7609027dbc6`: four commits, 17 added files, all inside the agreed namespace. Five untracked lab/view/browser files plus later modifications to `kit.ts` and `materials.ts` are active WIP, not final delivery.

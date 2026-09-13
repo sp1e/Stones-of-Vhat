@@ -9,9 +9,16 @@
   <body>
     <main id="lab-shell">
       <aside aria-label="Kontroller för armprovet">
-        <p class="eyebrow">VADSTENA / UTVECKLINGSPROV</p>
-        <h1>Från rörelse<br />till fysik.</h1>
-        <p class="intro">Två ledade segment med samma kroppar, massa och pose genom överlämningen.</p>
+        <p class="eyebrow">STONES OF VHAT / UTVECKLINGSPROV</p>
+        <h1>Skärvprovet</h1>
+        <p class="intro">Två tekniska segment provar rörelse, fysisk överlämning och första kontakt. Ingen anatomisk skada simuleras här.</p>
+        <fieldset class="slicer-controls">
+          <legend>Skärvans riktning</legend>
+          <label><input type="radio" name="slicer-blade" value="horizontal" checked /> Horisontell</label>
+          <label><input type="radio" name="slicer-blade" value="vertical" /> Vertikal</label>
+          <button id="cast-slicer" disabled>Kasta skärva <kbd>F</kbd></button>
+          <p class="launch-note">Fast, upprepbart labbkast bredvid aktuell underarm – ingen fri sikt.</p>
+        </fieldset>
         <div class="buttons">
           <button id="animate" disabled>Starta animation</button>
           <button id="pause" disabled>Pausa</button>
@@ -20,6 +27,7 @@
           <button id="reload" hidden>Ladda om och försök igen</button>
         </div>
         <p id="lab-status" role="status" aria-live="polite">Förbereder armprovet…</p>
+        <p id="slicer-status" role="status" aria-live="polite">Skärva redo</p>
         <dl>
           <dt>Aktuell gräns · steg</dt><dd id="tick">0</dd>
           <dt>Aktuellt ledavstånd</dt><dd id="gap">—</dd>
@@ -27,6 +35,12 @@
           <dt>Armmassa</dt><dd id="mass">3 kg</dd>
         </dl>
         <p class="legend"><span class="com-dot"></span> Masscentrum <span class="anchor-dot"></span> Ledankare</p>
+        <details id="contact-inspector">
+          <summary>Kontaktinspektion</summary>
+          <button id="inspect-contact" disabled>Inspektera senaste kontakt</button>
+          <p id="contact-time">Ingen avslutad skärva.</p>
+          <p id="contact-family">Resultat och full blockerfamilj visas efter ett avslutat kast.</p>
+        </details>
         <details id="native-inspector">
           <summary>Inspektera senaste delstegen</summary>
           <p>Uppmätta native-gränser. Ingen kontinuerlig solverbana eller CCD-delsteg.</p>
@@ -36,7 +50,7 @@
           <button id="native-live" disabled>Visa aktuell pose</button>
           <p>Historisk inspektion ändrar inte fysiken. Axlar visar kropp, animationsram och collider; röd X, grön Y, blå Z.</p>
         </details>
-        <p class="footnote">Separat teknikvy. Ledkoordinaterna är diagnostik, inte anatomiska gränser. Ingen komplett ragdoll visas.</p>
+        <p class="footnote">Separat teknikvy. Kontaktbilden är en härledd modellpose, inte en återställd solvergräns eller ett anatomiskt snitt.</p>
       </aside>
       <section id="lab-viewport" aria-label="Tredimensionellt armprov">
         <p id="inspection-banner" hidden></p>
