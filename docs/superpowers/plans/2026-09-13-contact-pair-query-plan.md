@@ -8,6 +8,8 @@
 
 **Tech Stack:** Existing Rapier compat0.20.0, Three.js rigid transforms, TypeScript and native Node tests. No dependency, engine, renderer, input, world-step or physics-threshold change.
 
+**Execution outcome,2026-09-13:** Tasks1 and2 acceptance checks completed. Initial SPEC findings were fixed with retained regressions, final SPEC PASS then fresh QUALITY APPROVE. Parent18/18 focused,155/155 full strict/native PASS35.452s, production build and whitespace PASS. Detailed exact results, review corrections and limitations: `2026-09-13-contact-pair-results.md`. The original checklists below preserve the preregistered plan; their acceptance is superseded by this outcome. Automatic next work is the separately reviewed family resolver, then owner/lifecycle and visible integration—not full B02a completion.
+
 ## Read-only dependencies and ownership
 
 Use `contactMotion.ts` after its independent acceptance. Read its exact exported facade, `poseBinding.ts`, installed `dist/geometry/shape.d.ts` and `contact.d.ts`, and both frozen probe scripts. Source evidence and limitations are in `2026-09-13-contact-query-design.md` and `2026-09-13-contact-3d-probe-results.md`.
