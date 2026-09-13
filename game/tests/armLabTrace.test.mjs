@@ -25,6 +25,9 @@ test('arm trace frame projects detached historical geometry from measured native
     for (let index = 0; index < snapshot.segments.length; index++) {
       const frameSegment = finalFrame.segments[index];
       const ownerSegment = snapshot.segments[index];
+      assert.deepEqual(Object.keys(frameSegment).sort(), [
+        'anchorWorld', 'bodyOriginWorld', 'boneWorld', 'colliderWorld', 'comWorld',
+      ]);
       poseNear(frameSegment.bodyOriginWorld, ownerSegment.bodyOriginWorld, 1e-6, 1e-6);
       poseNear(frameSegment.boneWorld, ownerSegment.boneWorld, 1e-6, 1e-6);
       poseNear(frameSegment.colliderWorld, ownerSegment.colliderWorld, 1e-6, 1e-6);

@@ -26,9 +26,6 @@ export function armTraceFrame(snapshot: ArmSnapshot, sampleIndex: number) {
       rotation: identity,
     }).position;
     return {
-      ref: structuredClone(segment.ref),
-      binding: structuredClone(segment.binding),
-      jointAnchorLocal: structuredClone(segment.jointAnchorLocal),
       bodyOriginWorld,
       boneWorld: worldBoneFromBody(bodyOriginWorld, segment.binding),
       colliderWorld: composeRigid(bodyOriginWorld, collider.localPose),
