@@ -51,18 +51,21 @@ export function cobbles(id: string, x: number, z: number, width: number, depth: 
 }
 
 export type TreeForm = 'broad' | 'pollard' | 'fruit';
-const TREE_FORMS: Readonly<Record<TreeForm, { trunkRadius: number; trunkHeight: number; crownRadius: number; crownCentre: number }>> = {
-  broad: { trunkRadius: 0.3, trunkHeight: 3.4, crownRadius: 2.8, crownCentre: 5.0 },
-  pollard: { trunkRadius: 0.38, trunkHeight: 2.7, crownRadius: 1.7, crownCentre: 4.1 },
-  fruit: { trunkRadius: 0.16, trunkHeight: 2.2, crownRadius: 1.5, crownCentre: 3.9 },
+const TREE_FORMS: Readonly<Record<TreeForm, { trunkRadius: number; crownRadius: number; crownCentre: number }>> = {
+  broad: { trunkRadius: 0.3, crownRadius: 2.8, crownCentre: 5.0 },
+  pollard: { trunkRadius: 0.38, crownRadius: 1.7, crownCentre: 4.1 },
+  fruit: { trunkRadius: 0.16, crownRadius: 1.5, crownCentre: 3.9 },
 };
+// The trunk ends a quarter radius below the crown centre, inside the crown's central blob, so crowns never float.
+const TRUNK_INTO_CROWN = 0.25;
 export function tree(id: string, form: TreeForm, x: number, z: number, seed: number, groundY = 0): EnvironmentElement[] {
   const spec = TREE_FORMS[form];
   const objectId = `tree-form-${form}`;
+  const trunkHeight = spec.crownCentre - spec.crownRadius * TRUNK_INTO_CROWN;
   return [
     element({ id: `${id}-trunk`, objectId, componentId: 'trunk', role: 'vegetation', collision: 'solid', material: 'bark',
-      geometry: { kind: 'cylinder', radius: spec.trunkRadius, height: spec.trunkHeight },
-      position: { x, y: groundY + spec.trunkHeight / 2, z } }),
+      geometry: { kind: 'cylinder', radius: spec.trunkRadius, height: trunkHeight },
+      position: { x, y: groundY + trunkHeight / 2, z } }),
     element({ id: `${id}-crown`, objectId, componentId: 'crown', role: 'vegetation', collision: 'overhead',
       material: form === 'pollard' ? 'foliage-dark' : 'foliage',
       geometry: { kind: 'crown', radius: spec.crownRadius, seed }, position: { x, y: groundY + spec.crownCentre, z } }),

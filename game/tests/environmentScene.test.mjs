@@ -106,6 +106,31 @@ test('render-only geometry stays inside the envelope its collision class promise
   } finally { scene.dispose(); }
 });
 
+test('every tree trunk reaches into the rendered underside of its own crown', () => {
+  const { environment, scene } = build();
+  try {
+    const rendered = tagged(scene.root);
+    const crowns = environment.elements.filter((element) => element.geometry.kind === 'crown');
+    assert.ok(crowns.length >= 3, 'negative control: the route has trees to check');
+    const probe = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+    for (const crown of crowns) {
+      const trunk = environment.elements.find((element) => element.id === crown.id.replace(/-crown$/, '-trunk'));
+      assert.equal(trunk?.geometry.kind, 'cylinder', `${crown.id} has no trunk`);
+      const trunkTop = trunk.position.y + trunk.geometry.height / 2;
+      // Cast down the trunk axis through a double-sided copy so the crown's inward-facing underside is hit too.
+      const mesh = rendered.get(crown.id), copy = new THREE.Mesh(mesh.geometry, probe);
+      copy.matrixWorld.copy(mesh.matrixWorld);
+      const origin = new THREE.Vector3(trunk.position.x, crown.position.y + crown.geometry.radius + 1, trunk.position.z);
+      const hits = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0)).intersectObject(copy, false);
+      assert.ok(hits.length >= 2, `${crown.id} does not cover its trunk axis`);
+      const underside = hits.at(-1).point.y, top = hits[0].point.y;
+      assert.ok(trunkTop >= underside + 0.05, `${crown.id} floats: trunk top ${trunkTop.toFixed(2)} below crown underside ${underside.toFixed(2)}`);
+      assert.ok(trunkTop <= top - 0.3, `${trunk.id} pokes through its crown: ${trunkTop.toFixed(2)} vs crown top ${top.toFixed(2)}`);
+    }
+    probe.dispose();
+  } finally { scene.dispose(); }
+});
+
 test('seeded detail is deterministic between builds', () => {
   const first = build(), second = build();
   try {
