@@ -254,6 +254,7 @@ export async function createArmFixture() {
         if (!active) return false;
         if (pending) handoff(pending);
         try {
+          motion!.beginNativeTrace();
           const samples: NativeSample[] = [];
           if (authority!.mode() === 'animation') {
             const bones = bonePoses(tick + 1);
@@ -261,6 +262,7 @@ export async function createArmFixture() {
               id: s.id, bodyOriginWorld: worldBodyFromBone(bones[index]!, s.binding),
             })));
             world.step();
+            motion!.captureNativeStep(FIXED_DT);
             samples.push({ metrics: measureArmState(measurement), energyAllowanceJ });
           } else {
             const parentJoint = quat(segments[0]!.body.rotation()).multiply(quat(adapter.joint.frameX1()));
@@ -280,6 +282,7 @@ export async function createArmFixture() {
                 energyAllowanceJ += torqueMagnitude * (beforeOmega[index]! + length(segments[index]!.body.angvel())) / 2;
               }
               world.step();
+              motion!.captureNativeStep((substep + 1) * PHYSICS_NATIVE_DT);
               samples.push({ metrics: measureArmState(measurement), energyAllowanceJ });
             }
           }
@@ -311,7 +314,10 @@ export async function createArmFixture() {
           lastPhysicsStep: structuredClone(lastPhysicsStep),
           handoff: structuredClone(transfer),
           segments: segments.map((s, index) => ({
-            ref: { ...refs[index]! }, bodyOriginWorld: pose(s.body.translation(), s.body.rotation()),
+            ref: { ...refs[index]! },
+            binding: structuredClone(s.binding),
+            jointAnchorLocal: { ...(index === 0 ? adapter.joint.anchor1() : adapter.joint.anchor2()) },
+            bodyOriginWorld: pose(s.body.translation(), s.body.rotation()),
             boneWorld: worldBoneFromBody(pose(s.body.translation(), s.body.rotation()), s.binding),
             colliderWorld: pose(s.collider.translation(), s.collider.rotation()),
             comWorld: { ...s.body.worldCom() }, comVelocityWorldMps: { ...s.body.linvel() },
