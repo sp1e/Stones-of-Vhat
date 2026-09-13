@@ -167,23 +167,43 @@ test('the churchyard wall rejects the capsule while its gate steps lead onto the
   });
 });
 
-test('escape sweep: twelve headings from every checkpoint stay inside the map', { timeout: 180_000 }, async () => {
-  const built = environment();
+const SWEEP_TICKS = 600; // 10 s at 60 Hz, as plan case 15 promises.
+/** One heading from one checkpoint in a fresh world; returns the first violation, or null when the capsule stayed in. */
+async function sweepHeading(built, checkpoint, heading) {
   const { minX, maxX, minZ, maxZ } = built.bounds;
-  for (const checkpoint of built.checkpoints) {
-    await withWorld(built, { spawn: checkpoint.position }, (yard) => {
-      settle(yard, 20);
-      for (let heading = 0; heading < 12; heading += 1) {
-        // 7 s of sprint (≈ 48 m) per heading; the walk continues from wherever the previous heading ended.
-        for (let tick = 0; tick < 420; tick += 1) {
-          yard.step({ ...IDLE, forward: 1, sprint: true, yaw: (heading * Math.PI) / 6 });
-          if (tick % 15 !== 14) continue;
-          const { position } = yard.snapshot().player;
-          assert.ok(finite(position) && position.y > -1, `${checkpoint.id} fell or broke at heading ${heading}`);
-          assert.ok(position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ,
-            `${checkpoint.id} escaped the map at heading ${heading}: ${JSON.stringify(position)}`);
-        }
+  return withWorld(built, { spawn: checkpoint.position }, (yard) => {
+    settle(yard, 20);
+    for (let tick = 0; tick < SWEEP_TICKS; tick += 1) {
+      yard.step({ ...IDLE, forward: 1, sprint: true, yaw: (heading * Math.PI) / 6 });
+      if (tick % 5 !== 4) continue;
+      const { position } = yard.snapshot().player;
+      if (!finite(position) || position.y < -1) return `${checkpoint.id} heading ${heading}: fell or broke at ${JSON.stringify(position)}`;
+      if (!(position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ)) {
+        return `${checkpoint.id} heading ${heading}: escaped at tick ${tick} ${JSON.stringify(position)}`;
       }
-    });
+    }
+    return null;
+  });
+}
+
+test('escape sweep: twelve 10 s headings from every checkpoint, each in a fresh world, stay inside the map', { timeout: 300_000 }, async () => {
+  const built = environment();
+  assert.equal(built.checkpoints.length, 13);
+  const violations = [];
+  for (const checkpoint of built.checkpoints) {
+    for (let heading = 0; heading < 12; heading += 1) {
+      const violation = await sweepHeading(built, checkpoint, heading);
+      if (violation) violations.push(violation);
+    }
   }
+  assert.deepEqual(violations, []);
+});
+
+test('escape sweep negative control: without the north approach fence the same sweep escapes', { timeout: 60_000 }, async () => {
+  const built = environment();
+  const control = withoutBodies(built, (body) => body.id.startsWith('fence-approach-north'));
+  const approach = built.checkpoints.find((checkpoint) => checkpoint.id === 'radhus-approach');
+  // Heading 6 is yaw π: forward (-sin π, -cos π) points +z, straight at the removed fence.
+  assert.equal(await sweepHeading(built, approach, 6), null, 'the intact fence holds the capsule');
+  assert.match(await sweepHeading(control.built, approach, 6) ?? '', /escaped|fell/, 'removing the fence must let the capsule out');
 });
