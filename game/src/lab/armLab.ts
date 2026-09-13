@@ -2,6 +2,7 @@ import './armLab.css';
 import { createArmFixture } from '../physics/armFixture.ts';
 import type { ArmFixture } from '../physics/armFixture.ts';
 import { createFixedStepper } from '../runtime/fixedStep.ts';
+import { armTraceFrame } from './armLabTrace.ts';
 import { createArmLabView } from './armLabView.ts';
 
 if (!import.meta.env.DEV) throw new Error('Arm lab is development-only');
@@ -21,10 +22,18 @@ function startLab(): void {
   const status = element<HTMLElement>('#lab-status'), tickText = element<HTMLElement>('#tick');
   const gap = element<HTMLElement>('#gap'), penetration = element<HTMLElement>('#penetration');
   const mass = element<HTMLElement>('#mass');
+  const nativeSample = element<HTMLInputElement>('#native-sample');
+  const nativeTime = element<HTMLElement>('#native-time'), nativeLive = element<HTMLButtonElement>('#native-live');
+  const inspectionBanner = element<HTMLElement>('#inspection-banner');
   const advance = createFixedStepper(), events = new AbortController();
   let arm: ArmFixture | null = null;
+  let sampleIndex: number | null = null;
   let running = false, loading = false, generation = 0, resets = 0, created = false;
   let graphicsLost = false, lastTime = performance.now(), frameId = 0, closed = false;
+
+  function clearInspection(): void {
+    sampleIndex = null;
+  }
 
   function pause(): void {
     running = false;
@@ -53,9 +62,31 @@ function startLab(): void {
       penetration.textContent = `${(state.metrics.penetrationM * 1000).toFixed(2)} mm`;
       mass.textContent = `${state.metrics.massKg.toFixed(2)} kg`;
     }
+    const trace = state?.interval.nativeTrace;
+    const available = !!trace && !running && !loading && !graphicsLost;
+    if (!available) clearInspection();
+    const lastSample = trace ? trace.samples.length - 1 : 0;
+    nativeSample.disabled = !available;
+    nativeSample.max = String(lastSample);
+    nativeSample.value = String(sampleIndex ?? lastSample);
+    nativeLive.disabled = sampleIndex === null;
+    inspectionBanner.hidden = sampleIndex === null;
+    if (trace && state) {
+      const index = sampleIndex ?? lastSample;
+      const offsetS = trace.samples[index]!.offsetS;
+      const label = `Delsteg ${index} / ${lastSample} · t = ${(state.interval.fromTick * state.interval.dtS + offsetS).toFixed(6)} s · +${(offsetS * 1000).toFixed(3)} ms`;
+      nativeTime.textContent = `${sampleIndex === null ? 'Aktuell pose. Inspelning:' : 'Historisk inspektion:'} ${label}`;
+      inspectionBanner.textContent = sampleIndex === null
+        ? 'Ingen färdig inspelning.'
+        : `Historisk inspektion: ${label}. Fysiken är pausad. Kropp / animationsram / collider visas med axellängd 12 / 18 / 24 cm.`;
+    } else {
+      nativeTime.textContent = 'Ingen färdig inspelning.';
+      inspectionBanner.textContent = 'Ingen färdig inspelning.';
+    }
   }
 
   async function reset(): Promise<void> {
+    clearInspection();
     pause();
     const request = ++generation;
     loading = true;
@@ -84,6 +115,7 @@ function startLab(): void {
 
   start.addEventListener('click', () => {
     if (!arm || loading || graphicsLost) return;
+    clearInspection();
     running = true;
     arm.setActive(true);
     lastTime = performance.now();
@@ -92,6 +124,7 @@ function startLab(): void {
   pauseButton.addEventListener('click', pause, { signal: events.signal });
   handoffButton.addEventListener('click', () => {
     if (!arm || loading) return;
+    clearInspection();
     const state = arm.snapshot(), center = state.segments[1]!.comWorld;
     try {
       arm.handoff({
@@ -109,6 +142,19 @@ function startLab(): void {
     }
   }, { signal: events.signal });
   resetButton.addEventListener('click', () => void reset(), { signal: events.signal });
+  nativeSample.addEventListener('input', () => {
+    if (!arm || running || loading || graphicsLost) return;
+    const state = arm.snapshot(), index = Number(nativeSample.value);
+    if (!Number.isInteger(index) || !state.interval.nativeTrace?.samples[index]) return;
+    sampleIndex = index;
+    view.render(state, index);
+    update();
+  }, { signal: events.signal });
+  nativeLive.addEventListener('click', () => {
+    clearInspection();
+    if (arm) view.render(arm.snapshot());
+    update();
+  }, { signal: events.signal });
 
   window.addEventListener('blur', pause, { signal: events.signal });
   document.addEventListener('visibilitychange', () => {
@@ -116,6 +162,7 @@ function startLab(): void {
   }, { signal: events.signal });
   view.canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
+    clearInspection();
     graphicsLost = true;
     pause();
   }, { signal: events.signal });
@@ -124,6 +171,7 @@ function startLab(): void {
     update();
   }, { signal: events.signal });
   window.addEventListener('pagehide', event => {
+    clearInspection();
     pause();
     generation++;
     arm?.destroy();
@@ -146,7 +194,7 @@ function startLab(): void {
     lastTime = now;
     try {
       advance(elapsed, running && !loading && !graphicsLost, () => arm?.step());
-      if (arm) view.render(arm.snapshot());
+      if (arm) view.render(arm.snapshot(), sampleIndex);
       update();
     } catch (error) {
       running = false;
@@ -158,9 +206,14 @@ function startLab(): void {
     }
     frameId = requestAnimationFrame(frame);
   }
-  window.__armLab = () => arm
-    ? { ...arm.snapshot(), running, resets, graphicsLost, gpu: view.resources() }
-    : null;
+  window.__armLab = () => {
+    if (!arm) return null;
+    const snapshot = arm.snapshot();
+    return {
+      ...snapshot, running, resets, graphicsLost, gpu: view.resources(),
+      inspection: sampleIndex === null ? null : { sampleIndex, frame: armTraceFrame(snapshot, sampleIndex) },
+    };
+  };
   void reset();
   frameId = requestAnimationFrame(frame);
 }
@@ -171,7 +224,7 @@ try {
 } catch (error) {
   element<HTMLElement>('#lab-status').textContent =
     `Grafiken kunde inte starta. Ladda om och försök igen. ${String(error)}`;
-  for (const selector of ['#animate', '#pause', '#handoff', '#reset']) {
+  for (const selector of ['#animate', '#pause', '#handoff', '#reset', '#native-live']) {
     element<HTMLButtonElement>(selector).disabled = true;
   }
   const reload = element<HTMLButtonElement>('#reload');

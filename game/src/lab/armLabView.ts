@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ArmSnapshot } from '../physics/armFixture.ts';
 import type { RigidTransform } from '../physics/poseBinding.ts';
+import { armTraceFrame } from './armLabTrace.ts';
 
 /** One reusable view; simulation owns every segment pose. */
 export function createArmLabView(host: HTMLElement) {
@@ -49,9 +50,21 @@ export function createArmLabView(host: HTMLElement) {
   const grid = new THREE.GridHelper(4, 16, '#8b9c87', '#566b5c');
   grid.position.y = .002;
   scene.add(grid);
+  const axes = [0, 1].map(() => [.12, .18, .24].map(size => {
+    const helper = new THREE.AxesHelper(size);
+    helper.renderOrder = 3;
+    for (const material of Array.isArray(helper.material) ? helper.material : [helper.material]) {
+      material.depthTest = false;
+      material.depthWrite = false;
+      material.transparent = true;
+      material.opacity = 0;
+    }
+    scene.add(helper);
+    return helper;
+  }));
 
   let disposed = false;
-  const setPose = (item: THREE.Mesh, pose: RigidTransform) => {
+  const setPose = (item: THREE.Object3D, pose: RigidTransform) => {
     item.position.set(pose.position.x, pose.position.y, pose.position.z);
     item.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
   };
@@ -68,14 +81,26 @@ export function createArmLabView(host: HTMLElement) {
 
   return {
     canvas,
-    render(snapshot: ArmSnapshot): void {
+    render(snapshot: ArmSnapshot, sampleIndex: number | null = null): void {
       if (disposed) return;
+      const historical = sampleIndex === null ? null : armTraceFrame(snapshot, sampleIndex);
+      const segments = historical?.segments ?? snapshot.segments;
+      const selectedAnchors = historical?.anchorsWorld ?? snapshot.metrics.anchorsWorld;
       for (const [index, item] of [upper, lower].entries()) {
-        setPose(item, snapshot.segments[index]!.colliderWorld);
-        const center = snapshot.segments[index]!.comWorld;
+        const segment = segments[index]!;
+        setPose(item, segment.colliderWorld);
+        const center = segment.comWorld;
         com[index]!.position.set(center.x, center.y, center.z);
-        const anchor = snapshot.metrics.anchorsWorld[index]!;
+        const anchor = selectedAnchors[index]!;
         anchors[index]!.position.set(anchor.x, anchor.y, anchor.z);
+        const poses = [segment.bodyOriginWorld, segment.boneWorld, segment.colliderWorld];
+        for (const [axisIndex, pose] of poses.entries()) {
+          const helper = axes[index]![axisIndex]!;
+          setPose(helper, pose);
+          for (const material of Array.isArray(helper.material) ? helper.material : [helper.material]) {
+            material.opacity = historical ? 1 : 0;
+          }
+        }
       }
       renderer.render(scene, camera);
     },
@@ -99,6 +124,11 @@ export function createArmLabView(host: HTMLElement) {
       objects.length = 0;
       grid.geometry.dispose();
       for (const material of Array.isArray(grid.material) ? grid.material : [grid.material]) material.dispose();
+      for (const group of axes) for (const helper of group) {
+        helper.geometry.dispose();
+        for (const material of Array.isArray(helper.material) ? helper.material : [helper.material]) material.dispose();
+        scene.remove(helper);
+      }
       scene.clear();
       renderer.dispose();
       renderer.forceContextLoss();

@@ -1,6 +1,6 @@
 # Stones of Vhat — Grip-prototyp och fysisk armtestmiljö
 
-Arbetsnamnet är **Stones of Vhat** sedan 2026-09-13. Tekniska namn och sökvägen `/vadstena/` är tills vidare oförändrade. Armens verkliga interna fysikgränser spelas nu in i en atomiskt publicerad, begränsad rörelsehistorik; separat historisk inspektionsvy återstår. Senaste typkontroll/native-gate: **115/115 PASS**. Tidigare webbläsarresultat nedan gäller den äldre armvyn, inte en färdig historikinspektör. Se [planens aktuella checkpoint](../docs/superpowers/plans/2026-09-08-native-motion-trace-plan.md) och [Claude-överlämningen för parallellt miljöarbete](../docs/handoffs/2026-09-13-claude-environment-workstream.md).
+Arbetsnamnet är **Stones of Vhat** sedan 2026-09-13. Tekniska namn och sökvägen `/vadstena/` är tills vidare oförändrade. Armens verkliga interna fysikgränser spelas nu in i en atomiskt publicerad, begränsad rörelsehistorik med en separat pausad inspektionsvy. Senaste verifiering: **116/116 native-tester, 14/14 webbläsartester samt strikt typkontroll och produktionsbygge PASS**. Se [historikprovets resultat och begränsningar](../docs/superpowers/plans/2026-09-13-native-motion-trace-results.md) och [Claude-överlämningen för parallellt miljöarbete](../docs/handoffs/2026-09-13-claude-environment-workstream.md).
 
 En lokal PC-webbprototyp med Three.js-rendering, Rapier-fysik och fysisk telekinesi. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och magins grundmekanik — inte den historiska Vadstenamiljön.
 
@@ -39,6 +39,8 @@ Pausmenyn erbjuder även högerklick för att **växla** Grip. Det valet gäller
 Med utvecklingsservern igång: öppna [armprovet](http://127.0.0.1:5173/vadstena/arm-lab.html). Starta animationen, pausa vid önskad pose och välj **Överlämna + impuls**. **Fortsätt fysik** låter armen falla och träffa golv/vägg; **Återställ provet** ger en ny isolerad fysikvärld. Överlämning fungerar även medan animationen kör. Turkosa markörer visar masscentrum, röda visar ledankare.
 
 De två segmenten behåller sina kroppar, massa och omedelbara pose; korrekt samplad masscentrums- och rotationshastighet överförs före impulsen. Vyn visar ledavstånd och kontaktpenetration från verklig Rapier-fysik. Detta är avsiktlig teknisk boxgeometri och diagnostiska ledkoordinater, inte anatomiska ledgränser eller en färdig människoarm. Armprovet har egna fysikinställningar och påverkar inte gården. HTML och labbkod ingår inte i det vanliga produktionsbygget.
+
+Efter några steg: pausa och öppna **Inspektera senaste delstegen**. Reglaget visar de uppmätta gränserna i det senaste intervallet (0–8 i fysikläge). Kropp, animationsram och collider får separata koordinataxlar. Bannern anger att posen är historisk; ledavstånd och övriga huvudvärden visar fortfarande den aktuella fysikgränsen. Reglaget ändrar inte fysiken eller simuleringstiden. **Visa aktuell pose** återgår direkt; fortsättning, återställning och grafikförlust rensar också valet. Ett vanligt fönsterbyte medan provet redan är pausat bevarar ditt val. Inspelningen beskriver inte en kontinuerlig solverbana eller interna CCD-delsteg.
 
 ## Verifiering och omfattning
 

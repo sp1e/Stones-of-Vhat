@@ -6,7 +6,7 @@ A PC-first, first-person medieval mystery game in development, set in Vadstena, 
 
 - Three.js rendering and Rapier physics in a keyboard-and-mouse courtyard.
 - Capsule movement, physical props and impulse-driven Grip telekinesis.
-- A separate development lab for a two-segment physical arm, animation-to-physics handoff and measured native-step history.
+- A separate development lab for a two-segment physical arm, animation-to-physics handoff, measured native-step history and a paused read-only history inspector.
 - Gore preference defaults on, but NPCs, anatomical severing and gore effects are **not implemented** in the current playable prototype.
 
 Historical environments, NPC routines, ranged magic, melee and the complete 15–20-minute chapter remain in development. The arm lab is technical test geometry, not a finished humanoid ragdoll.
