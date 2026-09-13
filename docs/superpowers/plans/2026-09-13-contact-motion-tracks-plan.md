@@ -79,7 +79,7 @@ Do not interpolate collider centers directly or substitute COM for body origin. 
 
 **Files:** create `game/src/physics/contactMotion.ts` and `game/tests/contactMotion.test.mjs` only.
 
-- [ ] Write a missing-feature test using the existing dynamic-import pattern, then observe its assertion failure before creating production code:
+- [x] Write a missing-feature test using the existing dynamic-import pattern, then observe its assertion failure before creating production code:
 
 ```js
 import assert from 'node:assert/strict';
@@ -112,24 +112,26 @@ test('contact motion compiles measured arm tracks without changing the owner', a
 
 Run `rtk proxy node --test tests/contactMotion.test.mjs` from game/. Expected RED: createContactMotion is undefined, not a missing-import syntax error.
 
-- [ ] Implement the smallest compiler/sampler preserving the locked API and first test, run GREEN.
-- [ ] Add focused RED→GREEN controls in small groups for each validation/sampling behavior above. Use real detached arm intervals plus small synthetic intervals made from their records, not mocked Rapier results. Explicit controls must include:
+- [x] Implement the smallest compiler/sampler preserving the locked API and first test, run GREEN.
+- [x] Add focused RED→GREEN controls in small groups for each validation/sampling behavior above. Use real detached arm intervals plus small synthetic intervals made from their records, not mocked Rapier results. Explicit controls must include:
   - Real physical 8-span arm; animation 1-span arm; handoff sample0 authority. Build after owner.destroy and sample without owner access.
   - Independent 3D noncommuting rotations with nonzero collider-local offset/rotation and different COM; compare against separate Three.js vector/quaternion reference math. Midpoint collider path must differ from naive collider-center LERP.
   - Actual measured knots must equal composed measured poses at 0, all internal knots and dt; internal knot picks right span. q/-q representation controls.
   - Reordered body/collider records succeed; changed identity/epoch, duplicate/missing/extra identities fail. Mutation of original interval and returned colliders/frame leaves subsequent samples unchanged. Frozen input succeeds.
   - Every invalid boundary/timing/sample-count, geometry/authority/role change, invalid number/scale/quaternion, extent, minimum shape size, derived-speed and recorded-omega limit. Test exact allowed limits and just-over rejection where representable; no stale candidate may survive rejected construction.
   - Fixed-body movement rejects. Constant unsupported blocker rejects, navigation does not become a blocker. Ref/time errors reject.
-- [ ] Run focused tests and strict typecheck, self-review, report actual RED/GREEN evidence. Do not stage or commit: coordinator owns all Git writes.
+- [x] Run focused tests and strict typecheck, self-review, report actual RED/GREEN evidence. Do not stage or commit: coordinator owns all Git writes.
 
 ## Task 2 — independent acceptance and continuation
 
-- [ ] Independent SPEC review against every locked requirement; implementer fixes relevant findings with retained regression tests.
-- [ ] Ordered fresh QUALITY review of actual source/tests, math/identity/frame boundaries and unnecessary scope; resolve important findings.
+- [x] Independent SPEC review against every locked requirement; implementer fixes relevant findings with retained regression tests.
+- [x] Ordered fresh QUALITY review of actual source/tests, math/identity/frame boundaries and unnecessary scope; resolve important findings.
 - [ ] Parent focused tests, `rtk proxy npm run check`, `rtk proxy npm run build`, whitespace check, exact-path commit. No browser/visual claim for this nonvisual increment.
 - [ ] Coordinator records measured evidence and proceeds to pairwise native query planning/implementation automatically. No routine user gate.
 
 ## Next dependent query design (not accepted as implemented by this plan)
+
+Implementation acceptance evidence: [contact-motion results](2026-09-13-contact-motion-results.md). Final source has21/21 focused,137/137 strict/native and production build PASS, with ordered SPEC PASS and QUALITY APPROVE. Both initial SPEC and subsequent QUALITY defects are retained as regression tests; importantly the small-angle sampler uses true constant-rate shortest interpolation rather than installed Three's NLERP shortcut. Coordinator commit/status follows without a routine user gate.
 
 Planning review: independent Astra/high numerical and SPEC review passed after the explicit no-blocker and finite-derived-rate clauses above were added. This does not replace the later implementation review.
 
