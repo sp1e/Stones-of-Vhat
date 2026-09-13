@@ -21,7 +21,9 @@ phase-tagged silhouettes, three documented future landmark anchors without geome
 lifecycle hardening, provenance metadata, native and browser tests.
 
 Out: NPCs, magic, Grip wiring, gore, sound propagation, progression, lore changes, dynamic props,
-assets under `public/`, edits outside the owned namespace, Windows packaging, merge, publication.
+assets under `public/`, edits outside the owned namespace, Windows packaging, merge, integration into `main` or Codex
+branches. Pushing this own branch only, as account sp1e, on Simon's direct chat instruction (see
+`integration-requests.md`).
 
 ## 2. Ownership (write allowlist)
 
@@ -89,7 +91,8 @@ z −80 ─ enclosure wall ─────────────────�
 ```
 
 Named checkpoints: `radhus-approach`, `storgata-north`, `storgata-narrows`, `portik-east`, `portik-west`,
-`courtyard-1`, `lane-west`, `alley-mouth`, `alley-bend`, `open-space`, `church-gate`, `st-per-north`.
+`courtyard-1`, `courtyard-2`, `lane-west`, `alley-mouth`, `alley-bend`, `open-space`, `church-gate`, `st-per-north`
+(13; `courtyard-2` is a spawn/escape-sweep checkpoint behind the closed gate, not on either route).
 Two waypoint routes share the start and the end: **P** (portik + lane) and **A** (alley).
 
 House variants (parametric): H1 booth (1 storey, eaves to street) · H2 gable-timber (1½ storeys, gable
