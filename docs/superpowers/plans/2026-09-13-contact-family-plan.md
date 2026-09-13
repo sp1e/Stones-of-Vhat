@@ -4,6 +4,8 @@
 
 ## Goal and boundary
 
+**Execution outcome2026-09-13:** accepted after independent SPEC PASS and fresh QUALITY APPROVE; parent12/12 focused,167/167 strict/native PASS34.594s, production build/whitespace PASS. Test-only SPEC coverage omissions and bounded-list RED→GREEN correction are recorded in `2026-09-13-contact-family-results.md`. Original checklist below preserves the preregistered requirements; this outcome supersedes its unchecked markers. Next implementation is the reviewed owner-bound batch, not damage or visible spell acceptance.
+
 Choose a definite first contact only when the full declared candidate family establishes it. A shield, wall, earlier graze or initial muzzle block must prevent a later limb from becoming a selected hit. This is the pure ordering layer of B02a, not the live owner-completeness wrapper, work ledger, cast lifecycle, damage, severing or visible spell. Those are subsequent integration tasks, not hidden claims of this module.
 
 The accepted contact-motion and pair-query APIs remain unchanged. Use TypeScript, detached data and existing native tests; no new packages, worlds, UI, runtime input or physics settings. Sole writer owns only `game/src/physics/contactFamily.ts` and `game/tests/contactFamily.test.mjs`. Existing fixture helper, pair source, owner and all coordinator/Claude paths are read-only. No worker Git writes.
