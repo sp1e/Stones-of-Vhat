@@ -1,4 +1,6 @@
-# Vadstena — Grip-prototyp och fysisk armtestmiljö
+# Stones of Vhat — Grip-prototyp och fysisk armtestmiljö
+
+Arbetsnamnet är **Stones of Vhat** sedan 2026-09-13. Tekniska namn och sökvägen `/vadstena/` är tills vidare oförändrade. Armens verkliga interna fysikgränser spelas nu in i en atomiskt publicerad, begränsad rörelsehistorik; separat historisk inspektionsvy återstår. Senaste typkontroll/native-gate: **115/115 PASS**. Tidigare webbläsarresultat nedan gäller den äldre armvyn, inte en färdig historikinspektör. Se [planens aktuella checkpoint](../docs/superpowers/plans/2026-09-08-native-motion-trace-plan.md) och [Claude-överlämningen för parallellt miljöarbete](../docs/handoffs/2026-09-13-claude-environment-workstream.md).
 
 En lokal PC-webbprototyp med Three.js-rendering, Rapier-fysik och fysisk telekinesi. Gården är avsiktlig prototypgeometri för rörelse, kollisioner och magins grundmekanik — inte den historiska Vadstenamiljön.
 
