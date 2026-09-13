@@ -2,6 +2,8 @@
 
 Status: design preparation while the contact-motion compiler is implemented; **not an executable approved plan, query implementation, or accepted collision result**. Coordinator-owned. It consolidates the frozen diagnostics and independent numerical review, so the next writer does not restart research.
 
+Update: the motion dependency is accepted as12b4a36, and the exact [pair-query implementation plan](2026-09-13-contact-pair-query-plan.md) has independent numerical/SPEC PASS. Its sole writer is active. The prose below remains design context; use that executable plan for current API/predicates. Pair-query source and visible contact acceptance are still pending.
+
 The extended general3D, large-geometry and cross-span uncertainty controls are now preserved and independently reproduced in [the3D diagnostic results](2026-09-13-contact-3d-probe-results.md). Use those exact retained fixtures in the executable query plan; do not replace failure controls with easier paths.
 
 ## Purpose and authority

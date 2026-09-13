@@ -126,12 +126,12 @@ Run `rtk proxy node --test tests/contactMotion.test.mjs` from game/. Expected RE
 
 - [x] Independent SPEC review against every locked requirement; implementer fixes relevant findings with retained regression tests.
 - [x] Ordered fresh QUALITY review of actual source/tests, math/identity/frame boundaries and unnecessary scope; resolve important findings.
-- [ ] Parent focused tests, `rtk proxy npm run check`, `rtk proxy npm run build`, whitespace check, exact-path commit. No browser/visual claim for this nonvisual increment.
-- [ ] Coordinator records measured evidence and proceeds to pairwise native query planning/implementation automatically. No routine user gate.
+- [x] Parent focused tests, `rtk proxy npm run check`, `rtk proxy npm run build`, whitespace check, exact-path commit. No browser/visual claim for this nonvisual increment.
+- [x] Coordinator records measured evidence and proceeds to pairwise native query planning/implementation automatically. No routine user gate.
 
 ## Next dependent query design (not accepted as implemented by this plan)
 
-Implementation acceptance evidence: [contact-motion results](2026-09-13-contact-motion-results.md). Final source has21/21 focused,137/137 strict/native and production build PASS, with ordered SPEC PASS and QUALITY APPROVE. Both initial SPEC and subsequent QUALITY defects are retained as regression tests; importantly the small-angle sampler uses true constant-rate shortest interpolation rather than installed Three's NLERP shortcut. Coordinator commit/status follows without a routine user gate.
+Implementation acceptance evidence: [contact-motion results](2026-09-13-contact-motion-results.md), accepted source commit12b4a36. Final source has21/21 focused,137/137 strict/native and production build PASS, with ordered SPEC PASS and QUALITY APPROVE. Both initial SPEC and subsequent QUALITY defects are retained as regression tests; importantly the small-angle sampler uses true constant-rate shortest interpolation rather than installed Three's NLERP shortcut. The reviewed pair-query writer has started without a routine user gate.
 
 Planning review: independent Astra/high numerical and SPEC review passed after the explicit no-blocker and finite-derived-rate clauses above were added. This does not replace the later implementation review.
 
