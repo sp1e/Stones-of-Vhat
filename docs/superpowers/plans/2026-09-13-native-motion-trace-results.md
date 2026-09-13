@@ -47,6 +47,8 @@ The additional cost is material. Before scaling to multiple actors, measure the 
 
 The user created public `sp1e/Stones-of-Vhat` and authorized uploading the project. The initial GitHub README was preserved in merge `d960d00`; source/test/documentation history, including Claude's pinned `20d9cf5` base, was uploaded. Project setup and reviewed frame adapter are published through `425b0ed` at the time of this record. Later UI work needs its own verification and publication checkpoint.
 
+Final publication checkpoint: accepted inspector source/results **0d4d1a22558a238120bbe546bb0a93d9a43af095** was pushed without force and verified on both `main` and `codex/vadstena-runtime-foundation`. This following documentation update records that completed outcome. A fresh local dev preview serves both yard and arm lab at port 5173, separately HTTP-verified; it is not a website deployment.
+
 Only tracked project files/history were included. Dependencies, generated builds/executables and the untracked local research working cache were not uploaded. A bounded independent publication audit found no blocker in 98 tracked paths, 206 unique file blobs and 43 commits at `dc713bd`; this is neither comprehensive security certification nor blanket clearance to redistribute source images/models.
 
 ## Reproduction
