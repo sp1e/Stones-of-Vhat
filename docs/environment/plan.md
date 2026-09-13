@@ -55,7 +55,7 @@ EnvironmentElement {
 | Collision class | Meaning | Enforced invariant (test) |
 |---|---|---|
 | `solid` | walls, plinths, steps, fences, gates, trunks, well, cart | emits one `BodyDefinition` with identical id, size, position, rotation |
-| `overhead` | roofs, tree crowns | bottom ≥ 2.4 m above local ground or rests on a solid top; standing eye ≈ 1.47 m, jump apex eye ≈ 2.31 m |
+| `overhead` | roofs, tree crowns | bottom ≥ 2.6 m above local ground or rests on a solid top (not ground); standing eye = 0.86 + 0.55 + 0.3 − 0.1 = 1.61 m (`yard.ts:115-118`), jump apex eye ≈ 1.61 + 5.5²/(2·18) = 2.45 m |
 | `surface` | earth/grass/stone patches, cobbles | top ≤ 0.03 m above local ground (smooth collider underneath is intentional) |
 | `inset` | doors, windows, battens | bounds lie inside a solid expanded by ≤ 0.05 m, so no fake opening looks passable |
 
@@ -82,7 +82,8 @@ z  −1 ─ S1a H2 · S1b H3 close the street (dead end) ───────�
       route P: portik → Courtyard 1 → LANE W (2.2 m) ↓        route A: ALLEY E (2.2 m, turns south, 1.9 m) ↓
 z  −8 ────────────────────────────────────────────────────────
       C  OPEN SPACE x −24..14, z −8..−29.7  cover: cart, timber stack, well, wall fragment; 3 exits
-z −29.7 churchyard wall, 3 m gate, two 0.15 m steps up to plateau 0.45 m
+z −29.7 churchyard wall, 3 m gate; step blocks with tops 0.15 and 0.30 m (treads 0.45 m ≥ autostep min
+        width 0.35 m) then plateau edge 0.45 m = three 0.15 m rises (autostep max 0.25 m)
       D  S:T PER  west tower (Rödtornet, medieval) x −20..−11 · three-aisled nave x −11..16 · choir x 16..25
 z −80 ─ enclosure wall ────────────────────────────────────────
 ```
@@ -120,6 +121,8 @@ Native `tests/environmentContent.test.mjs`
 6. Tower hypotheses: both build valid; body sets differ only in `radhuset/tower` components.
 7. Collision classes: solid ↔ body identity; overhead/surface/inset invariants from §3.
 8. Landmark anchors: slott, Mårten Skinnares hus and Klosterkyrkan have records but zero elements.
+8b. No cobble carpet: cobble-patch area < 8 % of the map rectangle; four surface materials present.
+8c. Street geometry is irregular: facade lines vary and no straight modern street/square is claimed (DR record).
 
 Native `tests/environmentScene.test.mjs` (Three.js in Node, no WebGL)
 9. Scene meshes tagged with element ids; solid mesh world bounds equal body bounds within 1 mm.
@@ -136,7 +139,7 @@ Native `tests/environmentRoute.test.mjs` (real `createYard` capsule)
 
 Browser `browser/environmentLab.spec.mjs` (Node test runner + Playwright library, SwiftShader)
 17. Lab boots with sentinel, one canvas, no page/console/request errors; start → pointer lock → W moves.
-18. Esc / blur / pointer unlock pause; tick frozen; held key cleared across resume.
+18. Esc / blur / `visibilitychange` (document hidden) / pointer unlock pause; tick frozen; held key cleared across resume.
 19. Rejected pointer lock stays paused with a visible message and an enabled start button.
 20. Ten restarts: identical physics counts and GPU resource counts, one canvas.
 21. Real `WEBGL_lose_context`: simulation stops, controls disabled; restore → resources back, resume explicit.
